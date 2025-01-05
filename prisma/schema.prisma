@@ -1,0 +1,186 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["views"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Validation {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String    @unique @db.ObjectId
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  otp        Int?
+  isVerified Boolean   @default(false)
+  expiresAt  DateTime? @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("validations")
+}
+
+model User {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String
+  profilePicture String?        @default("")
+  phoneNumber    String?
+  address        String?        @default("")
+  city           String?        @default("")
+  gender         String?        @default("")
+  fcmToken       String?        @default("")
+  password       String?        @default("")
+  role           String         @default("USER")
+  isDelete       Boolean        @default(false)
+  isActive       Boolean        @default(true)
+  stripeId       String?        @default("")
+  totalCoins     Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  validation     Validation?
+  notifications  Notification[]
+  subscription   Subscription[]
+  payment        Payment[]
+  tasks          Task[]
+  taskAssign     TaskAssign[]
+  files          File[]
+
+  @@map("users")
+}
+
+model Package {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String
+  price         Int
+  coin          Int
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+
+  @@map("packages")
+}
+
+model Subscription {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  packageId     String   @db.ObjectId
+  package       Package  @relation(fields: [packageId], references: [id])
+  transactionId String   @unique
+  isActive      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  payment       Payment?
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String        @db.ObjectId
+  user           User          @relation(fields: [userId], references: [id])
+  amount         Int
+  status         String        @default("UNPAID")
+  subscriptionId String        @unique @db.ObjectId
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  transactionId  String        @unique
+  paymentData    Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+model Category {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  subCategories SubCategory[]
+
+  @@map("categories")
+}
+
+model SubCategory {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId String?   @db.ObjectId
+  category   Category? @relation(fields: [categoryId], references: [id])
+  name       String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("subCategories")
+}
+
+model Task {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String       @db.ObjectId
+  user        User         @relation(fields: [userId], references: [id])
+  title       String
+  category    String?
+  subCategory String?
+  date        String
+  time        String
+  description String
+  documents   File[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  taskAssign  TaskAssign[]
+
+  @@map("tasks")
+}
+
+model TaskAssign {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  taskId     String   @db.ObjectId
+  task       Task     @relation(fields: [taskId], references: [id])
+  userId     String   @db.ObjectId
+  status     String   @default("PENDING")
+  isAccepted Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("taskAssigns")
+}
+
+model File {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  url       String
+  key       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Task      Task?    @relation(fields: [taskId], references: [id])
+  taskId    String?  @db.ObjectId
+
+  @@map("files")
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  data      String?  @default("")
+  link      String?  @default("")
+  fcmToken  String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notifications")
+}
+
+model Settings {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  label   String @unique
+  content String
+
+  @@map("settings")
+}
