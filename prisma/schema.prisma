@@ -96,10 +96,11 @@ model Payment {
 
 model Category {
   id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
+  name          String        @unique
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   subCategories SubCategory[]
+  tasks         Task[]
 
   @@map("categories")
 }
@@ -108,27 +109,31 @@ model SubCategory {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   categoryId String?   @db.ObjectId
   category   Category? @relation(fields: [categoryId], references: [id])
-  name       String
+  name       String    @unique
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  tasks      Task[]
 
   @@map("subCategories")
 }
 
 model Task {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String       @db.ObjectId
-  user        User         @relation(fields: [userId], references: [id])
-  title       String
-  category    String?
-  subCategory String?
-  date        String
-  time        String
-  description String
-  documents   File[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  taskAssign  TaskAssign[]
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String       @db.ObjectId
+  user          User         @relation(fields: [userId], references: [id])
+  title         String
+  assignedTo    String
+  categoryId    String?      @db.ObjectId
+  category      Category?    @relation(fields: [categoryId], references: [id])
+  subCategoryId String?      @db.ObjectId
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  date          String
+  time          String
+  description   String
+  documents     File[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  taskAssign    TaskAssign[]
 
   @@map("tasks")
 }
