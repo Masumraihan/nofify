@@ -133,7 +133,8 @@ const googleCallback = async (user: TTokenUser) => {
       data: {
         email: user?.email as string,
         role: user.role as string,
-        name: "",
+        firstName: "",
+        lastName: "",
         phoneNumber: "",
       },
     });

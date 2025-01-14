@@ -19,6 +19,5 @@ router.patch(
   validateRequest(SubscriptionValidation.updateSubscription),
   SubscriptionController.updateSubscription,
 );
-router.patch("/cancel", auth("USER"), SubscriptionController.cancelSubscription);
 
 export const SubscriptionRoutes = router;

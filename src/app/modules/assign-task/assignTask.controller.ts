@@ -27,17 +27,6 @@ const updateSubscription = catchAsync(async (req, res) => {
   });
 });
 
-const cancelSubscription = catchAsync(async (req, res) => {
-  const user = (req as CustomRequest).user;
-  const result = await SubscriptionServices.cancelSubscription(user);
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: "Subscription cancelled successfully",
-    data: result,
-  });
-});
-
 const getSubscription = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
   const result = await SubscriptionServices.getSubscription(user);
@@ -52,6 +41,5 @@ const getSubscription = catchAsync(async (req, res) => {
 export const SubscriptionController = {
   createSubscription,
   updateSubscription,
-  cancelSubscription,
   getSubscription,
 };

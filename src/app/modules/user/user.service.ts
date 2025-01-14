@@ -55,7 +55,8 @@ const getUsers = async (query: Record<string, unknown>, options: TPaginationOpti
     select: {
       id: true,
       email: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       phoneNumber: true,
       role: true,
       profilePicture: true,
@@ -112,6 +113,8 @@ const getUser = async (id: string) => {
     },
     select: {
       id: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       profilePicture: true,
@@ -119,9 +122,6 @@ const getUser = async (id: string) => {
       updatedAt: true,
       isActive: true,
       phoneNumber: true,
-      address: true,
-      gender: true,
-      name: true,
     },
   });
   return result;
@@ -135,7 +135,8 @@ const getMyProfile = async (user: TTokenUser) => {
     },
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       profilePicture: true,

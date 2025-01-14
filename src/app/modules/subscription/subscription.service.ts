@@ -1,7 +1,6 @@
 import { createId } from "@paralleldrive/cuid2";
 import { StatusCodes } from "http-status-codes";
 import config from "../../config";
-
 import { Prisma } from "@prisma/client";
 import AppError from "../../errors/AppError";
 import prisma from "../../shared/prisma";

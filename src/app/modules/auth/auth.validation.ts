@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { USER_ROLE } from "../../enums";
+import { GENDER, USER_ROLE } from "../../enums";
 
 // User Model Validation
 export const signUpValidation = z
@@ -17,9 +17,9 @@ export const signUpValidation = z
       .string()
       .url({ message: "Invalid URL for profile picture. Please provide a valid URL." })
       .optional(),
-    role: z.enum([...Object.keys(USER_ROLE)] as [string, ...string[]], {
-      message: "Role must be either 'SUPER_ADMIN', 'USER', 'VENDOR' or 'SUB_ADMIN",
-    }),
+    //role: z.enum([...Object.keys(USER_ROLE)] as [string, ...string[]], {
+    //  message: "Role must be either 'SUPER_ADMIN', 'USER', 'VENDOR' or 'SUB_ADMIN",
+    //}),
     city: z.string().optional(),
     phoneNumber: z
       .string()
@@ -28,6 +28,11 @@ export const signUpValidation = z
       })
       .optional(),
     address: z.string().optional(),
+    gender: z
+      .enum([...Object.keys(GENDER)] as [string, ...string[]], {
+        message: "Gender must be either 'MALE' or 'FEMALE'",
+      })
+      .optional(),
     password: z.string().optional(),
   })
   .strict();

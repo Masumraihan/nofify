@@ -178,14 +178,14 @@ const recentTransactions = async (options: TPaginationOptions) => {
       user: {
         select: {
           profilePicture: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           phoneNumber: true,
-          address: true,
-          gender: true,
           role: true,
         },
       },
+      subscription: true,
     },
     skip,
     take: limit,
@@ -220,13 +220,13 @@ const singleTransaction = (id: string) => {
       user: {
         select: {
           profilePicture: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           phoneNumber: true,
-          address: true,
-          gender: true,
         },
       },
+      subscription: true,
     },
   });
 };

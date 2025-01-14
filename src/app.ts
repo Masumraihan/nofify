@@ -150,7 +150,8 @@ app.get(
             data: {
               email: user?.email as string,
               role: req.body.role as string,
-              name: "",
+              firstName: "",
+              lastName: "",
               phoneNumber: "",
             },
           });

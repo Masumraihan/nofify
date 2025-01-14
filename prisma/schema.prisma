@@ -23,13 +23,11 @@ model Validation {
 
 model User {
   id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
+  firstName      String
+  lastName       String
   email          String
   profilePicture String?        @default("")
   phoneNumber    String?
-  address        String?        @default("")
-  city           String?        @default("")
-  gender         String?        @default("")
   fcmToken       String?        @default("")
   password       String?        @default("")
   role           String         @default("USER")

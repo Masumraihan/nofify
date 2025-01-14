@@ -5,6 +5,8 @@ import { NotificationRoutes } from "../modules/notification/notification.route";
 import { SettingsRoutes } from "../modules/settings/settings.route";
 import { UploadRoutes } from "../modules/upload/upload.route";
 import { UserRoutes } from "../modules/user/user.route";
+import { PackageRoutes } from "../modules/package/package.route";
+import { TaskRoutes } from "../modules/task/task.route";
 
 const router = express.Router();
 
@@ -16,6 +18,14 @@ const moduleRoutes = [
   {
     path: "/user",
     route: UserRoutes,
+  },
+  {
+    path: "/package",
+    route: PackageRoutes,
+  },
+  {
+    path: "/task",
+    route: TaskRoutes,
   },
   {
     path: "/upload",
