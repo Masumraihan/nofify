@@ -21,7 +21,7 @@ export const updateProfileValidationSchema = z
     name: z.string().optional(),
     address: z.string().optional(),
     city: z.string().optional(),
-    
+
     phoneNumber: z.string().optional(),
   })
   .strict();

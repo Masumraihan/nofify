@@ -145,6 +145,7 @@ const getMyProfile = async (user: TTokenUser) => {
       updatedAt: true,
       fcmToken: true,
       isActive: true,
+      totalCoins: true,
     },
   });
   return result;
