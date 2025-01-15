@@ -1,45 +1,88 @@
 import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
+import { AssignTaskServices } from "./assignTask.service";
 import { CustomRequest } from "../../types/common";
-import { SubscriptionServices } from "./assignTask.service";
+import pick from "../../shared/pick";
+import { assignTaskFilterableFields, taskFilterableFields } from "./assignTask.constant";
+import { PaginationOption } from "../../../constant/common";
 
-const createSubscription = catchAsync(async (req, res) => {
+const createAssignTask = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
-  const result = await SubscriptionServices.createSubscription(user, req.body);
-
+  const result = await AssignTaskServices.createAssignTask(user, req.body);
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: "Subscription created successfully",
+    message: "Assign Task created successfully",
     data: result,
   });
 });
 
-const updateSubscription = catchAsync(async (req, res) => {
+const getAssignTasks = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
-  const result = await SubscriptionServices.updateSubscription(user, req.body);
+  const query = pick(req.query, [...assignTaskFilterableFields, ...taskFilterableFields]);
+  const option = pick(req.query, PaginationOption);
+  const { data, meta } = await AssignTaskServices.getAssignTasks(query, option);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Subscription update successfully",
-    data: result,
+    message: "Assign Tasks fetched successfully",
+    data,
   });
 });
 
-const getSubscription = catchAsync(async (req, res) => {
+const myAssignTasks = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
-  const result = await SubscriptionServices.getSubscription(user);
+  const query = pick(req.query, assignTaskFilterableFields);
+  const option = pick(req.query, PaginationOption);
+  const { data, meta } = await AssignTaskServices.myAssignTasks(user, query, option);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: "Subscription fetched successfully",
+    message: "My Assign Tasks fetched successfully",
+    meta,
+    data,
+  });
+});
+
+const updateAssignTask = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await AssignTaskServices.updateAssignTask(user, req.params.id, req.body);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Assign Task updated successfully",
     data: result,
   });
 });
 
-export const SubscriptionController = {
-  createSubscription,
-  updateSubscription,
-  getSubscription,
+const updateAssignTaskStatus = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await AssignTaskServices.updateAssignTaskStatus(user, req.params.id, req.body);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Assign Task status updated successfully",
+    data: result,
+  });
+});
+
+const deleteAssignTask = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await AssignTaskServices.deleteAssignTask(user, req.params.id);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Assign Task deleted successfully",
+    data: result,
+  });
+});
+
+export const AssignTaskControllers = {
+  createAssignTask,
+  getAssignTasks,
+  myAssignTasks,
+  updateAssignTask,
+  updateAssignTaskStatus,
+  deleteAssignTask,
 };

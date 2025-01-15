@@ -1,18 +1,28 @@
 import { z } from "zod";
-
-const createSubscriptionSchema = z.object({
+const crateAssignTaskValidation = z.object({
   body: z.object({
-    packageId: z.string({ required_error: "Package ID is required" }),
+    taskId: z.string({ required_error: "Task ID is required" }),
+    userId: z.string({ required_error: "User ID is required" }),
   }),
 });
 
-const updateSubscription = z.object({
+const updateAssignTaskValidation = z.object({
   body: z.object({
-    packageId: z.string().optional(),
+    taskId: z.string().optional(),
+    userId: z.string().optional(),
   }),
 });
 
-export const SubscriptionValidation = {
-  createSubscriptionSchema,
-  updateSubscription,
+const updateAssignTaskStatus = z.object({
+  body: z.object({
+    taskId: z.string({ required_error: "Task ID is required" }),
+    isAccepted: z.boolean({ required_error: "isAccepted is required" }),
+    status: z.string().optional(),
+  }),
+});
+
+export const AssignTaskValidations = {
+  crateAssignTaskValidation,
+  updateAssignTaskValidation,
+  updateAssignTaskStatus,
 };

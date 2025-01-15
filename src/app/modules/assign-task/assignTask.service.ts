@@ -1,168 +1,205 @@
-import { createId } from "@paralleldrive/cuid2";
-import { StatusCodes } from "http-status-codes";
-import config from "../../config";
-
-import { Prisma } from "@prisma/client";
-import AppError from "../../errors/AppError";
-import prisma from "../../shared/prisma";
+import { AssignTask, Prisma } from "@prisma/client";
 import { TTokenUser } from "../../types/common";
-import { PAYMENT_STATUS } from "../payment/payment.constant";
-import { StripeServices } from "../stripe/stripe.service";
+import prisma from "../../shared/prisma";
+import { TPaginationOptions } from "../../types/pagination";
+import { paginationHelper } from "../../helpers/paginationHelper";
+import { assignTaskFilterableFields, taskSearchableFields } from "./assignTask.constant";
 
-const createSubscription = async (user: TTokenUser, payload: { packageId: string }) => {
-  const packageData = await prisma.package.findFirstOrThrow({
-    where: {
-      id: payload.packageId,
-    },
-  });
+const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
+  return await prisma.assignTask.create({ data: { ...payload } });
+};
 
-  //const isSubscriptionExist = await prisma.subscription.findFirst({
-  //  where: {
-  //    userId: user.id,
-  //    isActive: true,
-  //  },
-  //});
+const getAssignTasks = async (query: Record<string, unknown>, options: TPaginationOptions) => {
+  const andConditions: Prisma.AssignTaskWhereInput[] = [];
+  const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
+  const { searchTerm, ...filterQuery } = query;
 
-  const result = await prisma.$transaction(async (transactionClient: Prisma.TransactionClient) => {
-    const transactionId = `${new Date().getTime()}_${createId()}`;
-    const subscription = await transactionClient.subscription.create({
-      data: {
-        userId: user.id,
-        packageId: payload.packageId,
-        transactionId,
+  if (searchTerm) {
+    andConditions.push({
+      task: {
+        OR: taskSearchableFields.map((field) => ({
+          [field]: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        })),
       },
     });
-    const payment = await transactionClient.payment.create({
-      data: {
-        amount: packageData.price,
-        userId: user.id,
-        status: PAYMENT_STATUS.UNPAID,
-        transactionId,
-        subscriptionId: subscription.id,
-      },
-      include: {
-        user: true,
-      },
-    });
+  }
 
-    let stripePaymentResponse = null;
-    if (payment) {
-      stripePaymentResponse = await StripeServices.createPaymentLink({
-        user: payment.user,
-        amount: payment.amount,
-        name: "Subscription Payment",
-        metaData: { subscriptionId: subscription.id, transactionId: transactionId },
-        paymentIntentDataMetaData: {
-          paymentId: payment.id,
-          subscriptionId: subscription.id,
-          transactionId,
+  if (Object.keys(filterQuery).length > 0) {
+    andConditions.push({
+      AND: Object.entries(filterQuery).map(([key, value]) => {
+        if (assignTaskFilterableFields.includes(key)) {
+          return {
+            [key]: {
+              equals: value,
+            },
+          };
+        } else {
+          return {
+            task: {
+              [key]: {
+                equals: value,
+              },
+            },
+          };
+        }
+      }),
+    });
+  }
+
+  const whereConditions: Prisma.AssignTaskWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  const result = await prisma.assignTask.findMany({
+    where: { ...whereConditions },
+    skip,
+    take: limit,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
         },
-        query: { subscriptionId: subscription.id, transactionId: transactionId },
-        webHookUrl: config.payment.webHookUrl as string,
-        cancelUrl: config.payment.paymentCancelUrl as string,
-      });
-    }
-
-    return {
-      paymentLink: stripePaymentResponse?.url as string,
-    };
-  });
-
-  return result;
-};
-
-const updateSubscription = async (user: TTokenUser, payload: { packageId: string }) => {
-  const packageData = await prisma.package.findFirstOrThrow({
-    where: {
-      id: payload.packageId,
-    },
-  });
-
-  const result = await prisma.$transaction(async (transactionClient: Prisma.TransactionClient) => {
-    const currentSubscription = await transactionClient.subscription.findFirst({
-      where: {
-        userId: user.id,
-        isActive: true,
       },
-    });
-
-    if (!currentSubscription) {
-      throw new AppError(
-        StatusCodes.NOT_FOUND,
-        "No active subscription detected. Please subscribe first to enable updates to your subscription.",
-      );
-    }
-
-    await transactionClient.subscription.update({
-      where: {
-        userId: user.id,
-        isActive: true,
-        id: currentSubscription?.id,
-      },
-      data: {
-        isActive: false,
-      },
-    });
-
-    const transactionId = `${new Date().getTime()}_${createId()}`;
-    const subscription = await transactionClient.subscription.create({
-      data: {
-        userId: user.id,
-        packageId: packageData.id,
-        transactionId,
-      },
-    });
-
-    const payment = await transactionClient.payment.create({
-      data: {
-        amount: packageData.price,
-        userId: user.id,
-        status: PAYMENT_STATUS.UNPAID,
-        transactionId,
-        subscriptionId: subscription.id,
-      },
-      include: {
-        user: true,
-      },
-    });
-
-    let stripePaymentResponse = null;
-    if (payment) {
-      stripePaymentResponse = await StripeServices.createPaymentLink({
-        user: payment.user,
-        amount: payment.amount,
-        name: "Subscription Payment",
-        metaData: { subscriptionId: subscription.id, transactionId: transactionId },
-        paymentIntentDataMetaData: {
-          paymentId: payment.id,
-          subscriptionId: subscription.id,
-          transactionId,
+      task: {
+        include: {
+          category: true,
+          subCategory: true,
+          documents: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
         },
-        query: { subscriptionId: subscription.id, transactionId: transactionId },
-        webHookUrl: config.payment.updateSubscriptionWebHookUrl as string,
-        cancelUrl: config.payment.paymentCancelUrl as string,
-      });
-    }
-    return {
-      paymentLink: stripePaymentResponse?.url as string,
-    };
-  });
-
-  return result;
-};
-
-const getSubscription = async (user: TTokenUser) => {
-  const result = await prisma.subscription.findFirstOrThrow({
-    where: {
-      userId: user.id,
-      isActive: true,
+      },
     },
   });
+
+  const total = await prisma.assignTask.count({ where: { ...whereConditions } });
+
+  const meta = {
+    total,
+    page,
+    limit,
+    totalPage: Math.ceil(total / limit),
+  };
+
+  return {
+    meta,
+    data: result,
+  };
+};
+
+const myAssignTasks = async (
+  user: TTokenUser,
+  query: Record<string, unknown>,
+  options: TPaginationOptions,
+) => {
+  const andConditions: Prisma.AssignTaskWhereInput[] = [];
+
+  const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
+
+  const { searchTerm, ...filterQuery } = query;
+
+  if (Object.keys(filterQuery).length > 0) {
+    andConditions.push({
+      AND: Object.entries(filterQuery).map(([key, value]) => {
+        if (assignTaskFilterableFields.includes(key)) {
+          return {
+            [key]: {
+              equals: value,
+            },
+          };
+        } else {
+          return {
+            task: {
+              [key]: {
+                equals: value,
+              },
+            },
+          };
+        }
+      }),
+    });
+  }
+
+  const whereConditions: Prisma.AssignTaskWhereInput =
+    andConditions.length > 0 ? { AND: andConditions } : {};
+
+  const result = await prisma.assignTask.findMany({
+    where: { ...whereConditions, task: { userId: user.id } },
+    skip,
+    take: limit,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+      task: {
+        include: {
+          category: true,
+          subCategory: true,
+          documents: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const total = await prisma.assignTask.count({
+    where: { ...whereConditions, task: { userId: user.id } },
+  });
+
+  const meta = {
+    total,
+    page,
+    limit,
+    totalPage: Math.ceil(total / limit),
+  };
+
+  return {
+    meta,
+    data: result,
+  };
+};
+
+const updateAssignTask = async (user: TTokenUser, id: string, payload: Partial<AssignTask>) => {
+  const result = await prisma.assignTask.update({ where: { id, userId: user.id }, data: payload });
   return result;
 };
 
-export const SubscriptionServices = {
-  createSubscription,
-  updateSubscription,
-  getSubscription,
+const updateAssignTaskStatus = async (
+  user: TTokenUser,
+  id: string,
+  payload: Partial<AssignTask>,
+) => {
+  const result = await prisma.assignTask.update({ where: { id, userId: user.id }, data: payload });
+  return result;
+};
+
+const deleteAssignTask = async (user: TTokenUser, id: string) => {
+  const result = await prisma.assignTask.deleteMany({ where: { id, userId: user.id } });
+  return result;
+};
+
+export const AssignTaskServices = {
+  createAssignTask,
+  getAssignTasks,
+  myAssignTasks,
+  updateAssignTask,
+  updateAssignTaskStatus,
+  deleteAssignTask,
 };

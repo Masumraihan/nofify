@@ -42,7 +42,7 @@ model User {
   subscription   Subscription[]
   payment        Payment[]
   tasks          Task[]
-  taskAssign     TaskAssign[]
+  assignTasks    AssignTask[]
   files          File[]
 
   @@map("users")
@@ -131,12 +131,12 @@ model Task {
   documents     File[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  taskAssign    TaskAssign[]
+  assignTasks   AssignTask[]
 
   @@map("tasks")
 }
 
-model TaskAssign {
+model AssignTask {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   taskId     String   @db.ObjectId
   task       Task     @relation(fields: [taskId], references: [id])
@@ -147,7 +147,7 @@ model TaskAssign {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@map("taskAssigns")
+  @@map("assignTask")
 }
 
 model File {

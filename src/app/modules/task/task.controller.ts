@@ -21,12 +21,13 @@ const createTask = catchAsync(async (req, res) => {
 const getTasks = catchAsync(async (req, res) => {
   const query = pick(req.query, taskFilterableFields);
   const options = pick(req.query, PaginationOption);
-  const result = await TaskServices.getTasks(query, options);
+  const { meta, data } = await TaskServices.getTasks(query, options);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Tasks fetched successfully",
-    data: result,
+    meta,
+    data,
   });
 });
 
@@ -34,12 +35,13 @@ const getMyTasks = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
   const query = pick(req.query, taskFilterableFields);
   const options = pick(req.query, PaginationOption);
-  const result = await TaskServices.getMyTasks(user, query, options);
+  const { data, meta } = await TaskServices.getMyTasks(user, query, options);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Tasks fetched successfully",
-    data: result,
+    meta,
+    data,
   });
 });
 
@@ -51,7 +53,7 @@ const getTaskById = catchAsync(async (req, res) => {
     message: "Task fetched successfully",
     data: result,
   });
-})
+});
 
 const updateTask = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
@@ -81,5 +83,5 @@ export const TaskController = {
   updateTask,
   deleteTask,
   getMyTasks,
-  getTaskById
+  getTaskById,
 };

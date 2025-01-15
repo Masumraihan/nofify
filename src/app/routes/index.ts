@@ -9,6 +9,7 @@ import { PackageRoutes } from "../modules/package/package.route";
 import { TaskRoutes } from "../modules/task/task.route";
 import { SubscriptionRoutes } from "../modules/assign-task/assignTask.route";
 import { PaymentRoutes } from "../modules/payment/payment.route";
+import { CategoryRoutes } from "../modules/category/category.route";
 
 const router = express.Router();
 
@@ -32,6 +33,10 @@ const moduleRoutes = [
   {
     path: "/payment",
     route: PaymentRoutes,
+  },
+  {
+    path: "/category",
+    route: CategoryRoutes,
   },
   {
     path: "/task",
