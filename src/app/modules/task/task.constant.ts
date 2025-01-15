@@ -1,6 +1,7 @@
-const taskSearchableFields = ["title", "description"];
-const taskFilterableFields = [
+export const taskSearchableFields = ["title", "description"];
+export const taskFilterableFields = [
   "assignedTo",
+  "userId",
   "categoryId",
   "subCategoryId",
   "date",

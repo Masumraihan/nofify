@@ -30,7 +30,7 @@ router.patch(
       if (req.file) {
         const profilePicture = await uploadToS3({
           file: req.file,
-          fileName: `task-management/users/${createId()}`,
+          fileName: `nofify/users/${createId()}`,
         });
         if (req.body?.data) {
           req.body = UserValidations.updateProfileValidationSchema.parse({

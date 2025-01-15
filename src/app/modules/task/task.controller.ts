@@ -3,6 +3,9 @@ import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
 import { TaskServices } from "./task.service";
 import { CustomRequest } from "../../types/common";
+import pick from "../../shared/pick";
+import { PaginationOption } from "../../../constant/common";
+import { taskFilterableFields } from "./task.constant";
 
 const createTask = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
@@ -14,6 +17,41 @@ const createTask = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const getTasks = catchAsync(async (req, res) => {
+  const query = pick(req.query, taskFilterableFields);
+  const options = pick(req.query, PaginationOption);
+  const result = await TaskServices.getTasks(query, options);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Tasks fetched successfully",
+    data: result,
+  });
+});
+
+const getMyTasks = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const query = pick(req.query, taskFilterableFields);
+  const options = pick(req.query, PaginationOption);
+  const result = await TaskServices.getMyTasks(user, query, options);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Tasks fetched successfully",
+    data: result,
+  });
+});
+
+const getTaskById = catchAsync(async (req, res) => {
+  const result = await TaskServices.getTaskById(req.params.id);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Task fetched successfully",
+    data: result,
+  });
+})
 
 const updateTask = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
@@ -39,6 +77,9 @@ const deleteTask = catchAsync(async (req, res) => {
 
 export const TaskController = {
   createTask,
+  getTasks,
   updateTask,
   deleteTask,
+  getMyTasks,
+  getTaskById
 };

@@ -9,6 +9,9 @@ const storage = memoryStorage();
 const upload = multer({ storage });
 
 const router = Router();
+router.get("/tasks", auth("SUPER_ADMIN", "USER"), TaskController.getTasks);
+router.get("/my-tasks", auth("USER"), TaskController.getMyTasks);
+router.get("/:id", auth("SUPER_ADMIN", "USER"), TaskController.getTaskById);
 router.post(
   "/create",
   auth("USER"),
@@ -16,8 +19,7 @@ router.post(
   async (req, res, next) => {
     try {
       const files = req.files as Express.Multer.File[];
-      const data = req.body;
-
+      const data = req.body.data;
       if (files.length) {
         const payload = files.map((file: Express.Multer.File) => {
           const path = `nofify/documents/${createId()}`;
@@ -46,6 +48,7 @@ router.post(
         next();
       } else {
         if (data) {
+          console.log(JSON.parse(data), "data");
           const taskData = TaskValidation.createTaskValidationSchema.parse({
             ...JSON.parse(data),
           });
@@ -63,35 +66,37 @@ router.post(
 router.patch(
   "/update/:id",
   auth("USER"),
+  upload.fields([{ name: "files", maxCount: 5 }]),
   async (req, res, next) => {
     try {
-      const files = req.files as Express.Multer.File[];
-      const data = req.body;
+      // Extract files and body data
+      const files = (req as any).files?.["files"] as Express.Multer.File[] | undefined;
+      const data = req.body?.data ? JSON.parse(req.body.data) : undefined;
 
-      if (files.length) {
-        const payload = files.map((file: Express.Multer.File) => {
-          const path = `nofify/documents/${createId()}`;
-          return {
-            path,
-            file: file.buffer,
-          };
-        });
+      // Process uploaded files if any
+      let documents: { url: string; key: string }[] = [];
+      if (files?.length) {
+        const payload = files.map((file) => ({
+          path: `nofify/documents/${createId()}`,
+          file: file.buffer,
+        }));
+
+        documents = await uploadManyToS3(payload);
       }
 
-      if (data) {
-        const taskData = TaskValidation.updateTaskValidationSchema.parse({
-          ...JSON.parse(data),
-        });
-        req.body = taskData;
-      } else {
-        const taskData = TaskValidation.updateTaskValidationSchema.parse({
-          ...JSON.parse(req.body),
-        });
-        req.body = taskData;
-      }
+      // Prepare the validation payload
+      const validationPayload = {
+        ...data,
+        ...(documents.length > 0 ? { documents } : {}),
+      };
+
+      // Validate and attach to request body
+      const taskData = TaskValidation.updateTaskValidationSchema.parse(validationPayload);
+      req.body = taskData;
 
       next();
     } catch (error) {
+      console.error("Error in task update handler:", error);
       next(error);
     }
   },
