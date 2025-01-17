@@ -1,15 +1,16 @@
 import express from "express";
+import { AssignTaskRoutes } from "../modules/assign-task/assignTask.route";
 import { AuthRoutes } from "../modules/auth/auth.route";
+import { CategoryRoutes } from "../modules/category/category.route";
 import { MetaRoutes } from "../modules/meta/meta.route";
 import { NotificationRoutes } from "../modules/notification/notification.route";
+import { PackageRoutes } from "../modules/package/package.route";
+import { PaymentRoutes } from "../modules/payment/payment.route";
 import { SettingsRoutes } from "../modules/settings/settings.route";
+import { TaskRoutes } from "../modules/task/task.route";
 import { UploadRoutes } from "../modules/upload/upload.route";
 import { UserRoutes } from "../modules/user/user.route";
-import { PackageRoutes } from "../modules/package/package.route";
-import { TaskRoutes } from "../modules/task/task.route";
-import { SubscriptionRoutes } from "../modules/assign-task/assignTask.route";
-import { PaymentRoutes } from "../modules/payment/payment.route";
-import { CategoryRoutes } from "../modules/category/category.route";
+import { SubscriptionRoutes } from "../modules/subscription/subscription.route";
 
 const router = express.Router();
 
@@ -41,6 +42,10 @@ const moduleRoutes = [
   {
     path: "/task",
     route: TaskRoutes,
+  },
+  {
+    path: "/assign-task",
+    route: AssignTaskRoutes,
   },
   {
     path: "/upload",

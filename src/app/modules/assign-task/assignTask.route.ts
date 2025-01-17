@@ -5,8 +5,9 @@ import { AssignTaskValidations } from "./assignTask.validation";
 import validateRequest from "../../middlewares/validateRequest";
 
 const router = Router();
-router.get("/tasks", auth("USER"), AssignTaskControllers.getAssignTasks);
-router.get("/my-tasks", auth("USER"), AssignTaskControllers.myAssignTasks);
+router.get("/my-tasks", auth("USER"), AssignTaskControllers.myTasks);
+router.get("/my-assign-tasks", auth("USER"), AssignTaskControllers.myAssignTasks);
+router.get("/:id", auth("USER"), AssignTaskControllers.assignTasksDetails);
 router.post(
   "/create",
   auth("USER"),
@@ -28,4 +29,4 @@ router.patch(
 
 router.delete("/delete/:id", auth("USER"), AssignTaskControllers.deleteAssignTask);
 
-export const SubscriptionRoutes = router;
+export const AssignTaskRoutes = router;

@@ -18,15 +18,16 @@ const createAssignTask = catchAsync(async (req, res) => {
   });
 });
 
-const getAssignTasks = catchAsync(async (req, res) => {
+const myTasks = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
   const query = pick(req.query, [...assignTaskFilterableFields, ...taskFilterableFields]);
   const option = pick(req.query, PaginationOption);
-  const { data, meta } = await AssignTaskServices.getAssignTasks(query, option);
+  const { data, meta } = await AssignTaskServices.myTasks(user, query, option);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Assign Tasks fetched successfully",
+    meta,
     data,
   });
 });
@@ -42,6 +43,16 @@ const myAssignTasks = catchAsync(async (req, res) => {
     message: "My Assign Tasks fetched successfully",
     meta,
     data,
+  });
+});
+
+const assignTasksDetails = catchAsync(async (req, res) => {
+  const result = await AssignTaskServices.assignTasksDetails(req.params.id);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Assign Task details fetched successfully",
+    data: result,
   });
 });
 
@@ -80,8 +91,9 @@ const deleteAssignTask = catchAsync(async (req, res) => {
 
 export const AssignTaskControllers = {
   createAssignTask,
-  getAssignTasks,
+  myTasks,
   myAssignTasks,
+  assignTasksDetails,
   updateAssignTask,
   updateAssignTaskStatus,
   deleteAssignTask,
