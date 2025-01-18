@@ -78,6 +78,28 @@ const signUpIntoDb = async (payload: User) => {
       throw new AppError(StatusCodes.BAD_REQUEST, "Failed to create user");
     }
 
+    if (payload.referCode) {
+      const referUser = await transactionClient.user.findFirst({
+        where: {
+          referCode: payload.referCode,
+        },
+      });
+
+      // ADD 200 COIN TO REFER USER
+      if (referUser) {
+        await transactionClient.user.update({
+          where: {
+            id: referUser.id,
+          },
+          data: {
+            totalCoins: {
+              increment: 200,
+            },
+          },
+        });
+      }
+    }
+
     const parentMailTemplate = path.join(process.cwd(), "/src/template/verify.html");
     const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
     const html = forgetOtpEmail
@@ -129,6 +151,10 @@ const googleCallback = async (user: TTokenUser) => {
       config.jwt.jwtRefreshTokenExpires as string,
     );
   } else {
+    const usersCount = await prisma.user.count();
+
+    const referCode = `NOFIFY_${usersCount + 1}`;
+
     const newUser = await prisma.user.create({
       data: {
         email: user?.email as string,
@@ -136,6 +162,7 @@ const googleCallback = async (user: TTokenUser) => {
         firstName: "",
         lastName: "",
         phoneNumber: "",
+        referCode,
       },
     });
 

@@ -146,6 +146,9 @@ app.get(
             config.jwt.jwtRefreshTokenExpires as string,
           );
         } else {
+          const usersCount = await prisma.user.count({});
+          const referCode = `NOFIFY_${usersCount + 1}`;
+
           const newUser = await prisma.user.create({
             data: {
               email: user?.email as string,
@@ -153,6 +156,7 @@ app.get(
               firstName: "",
               lastName: "",
               phoneNumber: "",
+              referCode,
             },
           });
         }

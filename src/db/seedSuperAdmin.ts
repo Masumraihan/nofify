@@ -35,6 +35,7 @@ const seedSuperAdmin = async () => {
             profilePicture: "https://goto.now/lcP4v",
             isDelete: false,
             isActive: true,
+            referCode: "superadmin",
           },
         });
         await transactionClient.validation.create({
