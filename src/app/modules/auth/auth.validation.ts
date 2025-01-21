@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { GENDER, USER_ROLE } from "../../enums";
 
 // User Model Validation
 export const signUpValidation = z
@@ -17,11 +16,13 @@ export const signUpValidation = z
       .optional(),
     phoneNumber: z
       .string()
-      .regex(/^\+?[1-9]\d{1,14}$/, {
-        message: "Phone number must be in international format and up to 15 digits long",
-      })
+      //.regex(/^\+?[1-9]\d{1,14}$/, {
+      //  message: "Phone number must be in international format and up to 15 digits long",
+      //})
       .optional(),
     password: z.string({ required_error: "Password is required" }),
+    code: z.string().optional(),
+    referralCode: z.string().optional(),
   })
   .strict();
 
@@ -65,9 +66,6 @@ const forgetPasswordValidation = z.object({
       phoneNumber: z
         .string()
         // accept space in phone number
-        .regex(/^\+?[1-9]\d{1,14}$/, {
-          message: "Phone number must be in international format and up to 15 digits long",
-        })
         .optional(),
       type: z
         .enum(["email", "mobile"], { message: "Type must be either 'email' or 'mobile'" })
@@ -88,6 +86,11 @@ const resendOtpValidation = z.object({
   body: z
     .object({
       token: z.string({ required_error: "Email is required" }).optional(),
+      phoneNumber: z.string().optional(),
+      type: z
+        .enum(["email", "mobile"], { message: "Type must be either 'email' or 'mobile'" })
+        .optional(),
+      email: z.string().email({ message: "Invalid email address" }).optional(),
     })
     .strict()
     .optional(),

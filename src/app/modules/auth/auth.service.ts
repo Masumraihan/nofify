@@ -12,6 +12,8 @@ import { sendMail } from "../../helpers/sendMail";
 import prisma from "../../shared/prisma";
 import { sendMessage } from "../../shared/sendMessage";
 import { TTokenUser } from "../../types/common";
+import { generateReferCode } from "./auth.utils";
+import { sendOTP } from "../../shared/sendSNSMessage";
 
 const signUpIntoDb = async (payload: User) => {
   const isUserExist = await prisma.user.findFirst({
@@ -34,6 +36,7 @@ const signUpIntoDb = async (payload: User) => {
     throw new AppError(StatusCodes.BAD_REQUEST, "User already exist with this mobile number");
   }
 
+  const code = await generateReferCode();
   const result = await prisma.$transaction(async (transactionClient) => {
     let hashedPassword;
     if (payload.password) {
@@ -43,6 +46,7 @@ const signUpIntoDb = async (payload: User) => {
       data: {
         ...payload,
         password: hashedPassword,
+        code,
       },
     });
 
@@ -78,10 +82,10 @@ const signUpIntoDb = async (payload: User) => {
       throw new AppError(StatusCodes.BAD_REQUEST, "Failed to create user");
     }
 
-    if (payload.referCode) {
+    if (payload.referralCode) {
       const referUser = await transactionClient.user.findFirst({
         where: {
-          referCode: payload.referCode,
+          referralCode: payload?.referralCode,
         },
       });
 
@@ -151,9 +155,7 @@ const googleCallback = async (user: TTokenUser) => {
       config.jwt.jwtRefreshTokenExpires as string,
     );
   } else {
-    const usersCount = await prisma.user.count();
-
-    const referCode = `NOFIFY_${usersCount + 1}`;
+    const code = await generateReferCode();
 
     const newUser = await prisma.user.create({
       data: {
@@ -162,7 +164,7 @@ const googleCallback = async (user: TTokenUser) => {
         firstName: "",
         lastName: "",
         phoneNumber: "",
-        referCode,
+        code,
       },
     });
 
@@ -247,22 +249,22 @@ const verifyAccount = async (token: string, payload: { otp: number }) => {
   };
 };
 
-const resendOtp = async (
-  user: TTokenUser,
-  payload: { email?: string; phoneNumber?: string; type?: string },
-) => {
-  const userData = await prisma.user.findUniqueOrThrow({
+const resendOtp = async (payload: { email?: string; phoneNumber?: string; type?: string }) => {
+  if (!payload.email && !payload.phoneNumber) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Please provide email or phone number");
+  }
+
+  const userData = await prisma.user.findFirst({
     where: {
       OR: [{ email: payload.email }, { phoneNumber: payload.phoneNumber }],
-      id: user.id,
       isDelete: false,
     },
   });
 
-  if (!userData.isActive) {
+  if (!userData?.isActive) {
     throw new AppError(StatusCodes.BAD_REQUEST, "Account is Blocked");
   }
-  if (userData.isDelete) {
+  if (userData?.isDelete) {
     throw new AppError(StatusCodes.BAD_REQUEST, "Account is Deleted");
   }
   //  SEND EMAIL FOR VERIFICATION
@@ -283,8 +285,11 @@ const resendOtp = async (
 
   if (payload.type === "mobile") {
     //  SEND SMS FOR VERIFICATION
-    const res = await sendMessage(userData.phoneNumber as string, otp.toString());
-    console.log(res);
+    //const res = await sendMessage(userData.phoneNumber as string, otp.toString());
+    //console.log(res);
+
+    console.log(payload);
+
     //const res = await sendVerificationCode(userData.phoneNumber as string);
   } else {
     //  SEND EMAIL FOR VERIFICATION
@@ -512,12 +517,12 @@ const forgetPasswordIntoDb = async (payload: {
   const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
 
   if (payload.type === "mobile") {
-    const res = await sendMessage(userData.phoneNumber as string, otp.toString());
-    //const res = await sendVerificationCode(userData.phoneNumber as string);
-    //const res = await sendMessagesIntoMobileNumber("123456", userData.phoneNumber as string, {
-    //  apiHost: "sms77io.p.rapidapi.com",
-    //  apiKey: "9ed64b85efmsh02d04be13423856p191496jsn7f197c4d8d38",
-    //});
+    if (!userData?.phoneNumber) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Phone number not found");
+    }
+
+    const res = await sendOTP(userData?.phoneNumber, otp);
+
     console.log(res);
   } else {
     const html = forgetOtpEmail

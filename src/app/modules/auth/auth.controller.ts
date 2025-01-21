@@ -88,19 +88,19 @@ const verifyAccount = catchAsync(async (req, res) => {
 });
 
 const resendOtp = catchAsync(async (req, res) => {
-  const t = req.headers.token as string;
+  //const t = req.headers.token as string;
 
-  const t2 = req.body.token;
-  if (!t2 && !t) {
-    throw new AppError(StatusCodes.UNAUTHORIZED, "Please provide your token");
-  }
+  //const t2 = req.body.token;
+  //if (!t2 && !t) {
+  //  throw new AppError(StatusCodes.UNAUTHORIZED, "Please provide your token");
+  //}
 
-  const decode = jwt.decode(t2 || t) as TTokenUser;
-  if (!decode) {
-    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid Token");
-  }
+  //const decode = jwt.decode(t2 || t) as TTokenUser;
+  //if (!decode) {
+  //  throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid Token");
+  //}
 
-  const { token } = await AuthServices.resendOtp(decode, req.body);
+  const { token } = await AuthServices.resendOtp( req.body);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
