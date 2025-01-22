@@ -10,10 +10,9 @@ import AppError from "../../errors/AppError";
 import { createToken, verifyToken } from "../../helpers/jwtHelper";
 import { sendMail } from "../../helpers/sendMail";
 import prisma from "../../shared/prisma";
-import { sendMessage } from "../../shared/sendMessage";
+import { sendOTP, sendSMSMessage } from "../../shared/sendSNSMessage";
 import { TTokenUser } from "../../types/common";
 import { generateReferCode } from "./auth.utils";
-import { sendOTP } from "../../shared/sendSNSMessage";
 
 const signUpIntoDb = async (payload: User) => {
   const isUserExist = await prisma.user.findFirst({
@@ -521,7 +520,10 @@ const forgetPasswordIntoDb = async (payload: {
       throw new AppError(StatusCodes.BAD_REQUEST, "Phone number not found");
     }
 
-    const res = await sendOTP(userData?.phoneNumber, otp);
+    const res = await sendSMSMessage({
+      Message: `Your OTP is NOFIFY ${otp}`,
+      PhoneNumber: userData.phoneNumber,
+    });
 
     console.log(res);
   } else {

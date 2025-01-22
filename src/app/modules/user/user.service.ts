@@ -80,8 +80,6 @@ const getUsers = async (query: Record<string, unknown>, options: TPaginationOpti
   };
 };
 
-
-
 const updateUser = async (id: string, payload: Partial<User>) => {
   const result = await prisma.user.update({
     where: {

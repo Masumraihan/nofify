@@ -11,6 +11,8 @@ export const uploadToS3 = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { file, fileName }: { file: any; fileName: string },
 ): Promise<string | null> => {
+  console.log({ file, fileName });
+
   const command = new PutObjectCommand({
     Bucket: config.aws.bucket,
     Key: fileName,
@@ -28,6 +30,7 @@ export const uploadToS3 = async (
 
     return url;
   } catch (error) {
+    console.log(error);
     throw new AppError(StatusCodes.BAD_REQUEST, "File Upload failed");
   }
 };

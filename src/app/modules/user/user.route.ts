@@ -27,11 +27,13 @@ router.patch(
   upload.single("profilePicture"),
   async (req, res, next) => {
     try {
+      console.log(req.file);
       if (req.file) {
         const profilePicture = await uploadToS3({
           file: req.file,
           fileName: `nofify/users/${createId()}`,
         });
+        console.log({profilePicture});
         if (req.body?.data) {
           req.body = UserValidations.updateProfileValidationSchema.parse({
             ...JSON.parse(req?.body?.data),
@@ -42,6 +44,7 @@ router.patch(
             profilePicture,
           });
         }
+        next();
       } else {
         if (req.body?.data) {
           req.body = UserValidations.updateProfileValidationSchema.parse(
@@ -50,8 +53,8 @@ router.patch(
         } else if (req.body) {
           req.body = UserValidations.updateProfileValidationSchema.parse(req.body);
         }
+        next();
       }
-      next();
     } catch (error) {
       next(error);
     }
