@@ -1,12 +1,29 @@
 import { AssignTask, Prisma } from "@prisma/client";
-import { TTokenUser } from "../../types/common";
-import prisma from "../../shared/prisma";
-import { TPaginationOptions } from "../../types/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
+import prisma from "../../shared/prisma";
+import { TTokenUser } from "../../types/common";
+import { TPaginationOptions } from "../../types/pagination";
 import { assignTaskFilterableFields, taskSearchableFields } from "./assignTask.constant";
-import { TASK_ASSIGNED_TO } from "./task.constant";
 
 const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
+  const isExist = await prisma.assignTask.findFirst({
+    where: {
+      taskId: payload.taskId,
+      userId: user.id,
+    },
+  });
+
+  if (isExist) {
+    throw new Error("You have already assigned this task");
+  }
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: {
+      id: payload.taskId,
+      userId: user.id,
+    },
+  });
+
   return await prisma.assignTask.create({ data: { ...payload } });
 };
 

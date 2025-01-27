@@ -1,10 +1,9 @@
 import { DeleteObjectCommand, DeleteObjectsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3Client } from "./aws";
-import AppError from "../errors/AppError";
-import config from "../config";
-import { StatusCodes } from "http-status-codes";
-import { PassThrough } from "stream";
 import { Upload } from "@aws-sdk/lib-storage";
+import { StatusCodes } from "http-status-codes";
+import config from "../config";
+import AppError from "../errors/AppError";
+import { s3Client } from "./aws";
 
 //upload a single file
 export const uploadToS3 = async (
@@ -27,7 +26,7 @@ export const uploadToS3 = async (
     }
 
     const url = `https://${config.aws.bucket}.s3.${config.aws.region}.amazonaws.com/${fileName}`;
-
+    console.log(url);
     return url;
   } catch (error) {
     console.log(error);

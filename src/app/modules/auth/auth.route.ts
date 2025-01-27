@@ -31,7 +31,7 @@ router.post(
         //const fileExtension = req.file.mimetype.split("/")[1] || "png";
         const profilePicture = await uploadToS3({
           file: req.file,
-          fileName: `event/users/${Math.floor(100000 + Math.random() * 900000)}`,
+          fileName: `nofify/users/${Math.floor(100000 + Math.random() * 900000)}`,
         });
         if (req.body?.data) {
           req.body = AuthValidations.signUpValidation.parse({

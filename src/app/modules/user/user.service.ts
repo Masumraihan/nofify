@@ -186,7 +186,7 @@ const deleteMyProfile = async (user: TTokenUser) => {
 
 const uploadImage = async (file: Express.Multer.File) => {
   const extension = file.originalname.split(".")[1];
-  const fileName = `event/${Math.floor(100000 + Math.random() * 900000)}.${extension}`;
+  const fileName = `nofify/${Math.floor(100000 + Math.random() * 900000)}.${extension}`;
   const result = await uploadToS3({ file, fileName: `${fileName}` });
   return {
     url: result,
