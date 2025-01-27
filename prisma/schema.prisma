@@ -148,8 +148,21 @@ model AssignTask {
   user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  coins      Coins[]
 
   @@map("assignTask")
+}
+
+model Coins {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  assignTaskId String     @db.ObjectId
+  assignTask   AssignTask @relation(fields: [assignTaskId], references: [id])
+  coin         Int
+  isRedeemed   Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("coins")
 }
 
 model File {

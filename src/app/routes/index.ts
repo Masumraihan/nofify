@@ -11,6 +11,7 @@ import { TaskRoutes } from "../modules/task/task.route";
 import { UploadRoutes } from "../modules/upload/upload.route";
 import { UserRoutes } from "../modules/user/user.route";
 import { SubscriptionRoutes } from "../modules/subscription/subscription.route";
+import { CoinsRoutes } from "../modules/coin/coins.route";
 
 const router = express.Router();
 
@@ -46,6 +47,10 @@ const moduleRoutes = [
   {
     path: "/assign-task",
     route: AssignTaskRoutes,
+  },
+  {
+    path: "/coins",
+    route: CoinsRoutes,
   },
   {
     path: "/upload",

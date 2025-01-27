@@ -56,6 +56,17 @@ const assignTasksDetails = catchAsync(async (req, res) => {
   });
 });
 
+const createManyAssignTask = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await AssignTaskServices.createManyAssignTask(user, req.body);
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
+    success: true,
+    message: "Assign Task created successfully",
+    data: result,
+  });
+});
+
 const updateAssignTask = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
   const result = await AssignTaskServices.updateAssignTask(user, req.params.id, req.body);
@@ -91,6 +102,7 @@ const deleteAssignTask = catchAsync(async (req, res) => {
 
 export const AssignTaskControllers = {
   createAssignTask,
+  createManyAssignTask,
   myTasks,
   myAssignTasks,
   assignTasksDetails,

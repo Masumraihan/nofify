@@ -6,7 +6,7 @@ import { PackageValidations } from "./package.validation";
 
 const router = Router();
 
-router.get("/packages", auth("SUPER_ADMIN"), PackageController.getPackages);
+router.get("/packages", auth("SUPER_ADMIN", "USER"), PackageController.getPackages);
 router.post(
   "/create",
   auth("SUPER_ADMIN"),

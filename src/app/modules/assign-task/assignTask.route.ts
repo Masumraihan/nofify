@@ -14,6 +14,12 @@ router.post(
   validateRequest(AssignTaskValidations.crateAssignTaskValidation),
   AssignTaskControllers.createAssignTask,
 );
+router.post(
+  "/create-many",
+  auth("USER"),
+  validateRequest(AssignTaskValidations.crateManyAssignTaskValidation),
+  AssignTaskControllers.createManyAssignTask,
+);
 router.patch(
   "/update/:id",
   auth("USER"),

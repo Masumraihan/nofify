@@ -9,7 +9,7 @@ const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
   const isExist = await prisma.assignTask.findFirst({
     where: {
       taskId: payload.taskId,
-      userId: user.id,
+      userId: payload.userId,
     },
   });
 
@@ -25,6 +25,36 @@ const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
   });
 
   return await prisma.assignTask.create({ data: { ...payload } });
+};
+
+const createManyAssignTask = async (
+  user: TTokenUser,
+  payload: { taskId: string; userIds: string[] },
+) => {
+  const isExist = await prisma.assignTask.findFirst({
+    where: {
+      taskId: payload.taskId,
+      userId: {
+        in: payload.userIds,
+      },
+    },
+  });
+
+  if (isExist) {
+    throw new Error("You have already assigned this task");
+  }
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: {
+      id: payload.taskId,
+      userId: user.id,
+    },
+  });
+
+  const result = await prisma.assignTask.createMany({
+    data: payload.userIds.map((userId) => ({ taskId: payload.taskId, userId })),
+  });
+  return result;
 };
 
 const myTasks = async (
@@ -246,6 +276,7 @@ const deleteAssignTask = async (user: TTokenUser, id: string) => {
 
 export const AssignTaskServices = {
   createAssignTask,
+  createManyAssignTask,
   myTasks,
   myAssignTasks,
   assignTasksDetails,
