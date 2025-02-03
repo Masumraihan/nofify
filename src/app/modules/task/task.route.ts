@@ -15,11 +15,13 @@ router.get("/:id", auth("SUPER_ADMIN", "USER"), TaskController.getTaskById);
 router.post(
   "/create",
   auth("USER"),
-  upload.fields([{ name: "files", maxCount: 5 }]),
+  upload.array("files", 5),
   async (req, res, next) => {
     try {
       const files = req.files as Express.Multer.File[];
       const data = req.body.data;
+
+      console.log(files, "files", files.length);
       if (files.length) {
         const payload = files.map((file: Express.Multer.File) => {
           const path = `nofify/documents/${createId()}`;
@@ -28,8 +30,8 @@ router.post(
             file: file.buffer,
           };
         });
-
         const documents = await uploadManyToS3(payload);
+        console.log(documents);
         if (data) {
           const taskData = TaskValidation.createTaskValidationSchema.parse({
             ...JSON.parse(data),
@@ -83,6 +85,8 @@ router.patch(
 
         documents = await uploadManyToS3(payload);
       }
+
+      console.log(documents, req.files);
 
       // Prepare the validation payload
       const validationPayload = {

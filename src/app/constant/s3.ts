@@ -3,7 +3,7 @@ import { Upload } from "@aws-sdk/lib-storage";
 import { StatusCodes } from "http-status-codes";
 import config from "../config";
 import AppError from "../errors/AppError";
-import { s3Client } from "./aws";
+import { getS3Client } from "./aws";
 
 //upload a single file
 export const uploadToS3 = async (
@@ -20,7 +20,9 @@ export const uploadToS3 = async (
   });
 
   try {
+    const s3Client = await getS3Client();
     const key = await s3Client.send(command);
+
     if (!key) {
       throw new AppError(StatusCodes.BAD_REQUEST, "File Upload failed");
     }
@@ -36,6 +38,7 @@ export const uploadToS3 = async (
 
 // delete file from s3 bucket
 export const deleteFromS3 = async (key: string) => {
+  const s3Client = await getS3Client();
   try {
     const command = new DeleteObjectCommand({
       Bucket: config.aws.bucket,
@@ -59,6 +62,8 @@ export const uploadManyToS3 = async (
     extension?: string;
   }[],
 ): Promise<{ url: string; key: string }[]> => {
+  const s3Client = await getS3Client();
+
   try {
     const uploadPromises = files.map(async ({ file, path, key, extension = "png" }) => {
       const newFileName = key ? key : `${Math.floor(100000 + Math.random() * 900000)}${Date.now()}`;
@@ -79,11 +84,13 @@ export const uploadManyToS3 = async (
     const uploadedUrls = await Promise.all(uploadPromises);
     return uploadedUrls;
   } catch (error) {
+    console.log(error);
     throw new Error("File Upload failed");
   }
 };
 
 export const deleteManyFromS3 = async (keys: string[]) => {
+  const s3Client = await getS3Client();
   try {
     const deleteParams = {
       Bucket: config.aws.bucket,
@@ -109,6 +116,7 @@ export const uploadWithProgress = async (
   { file, fileName }: { file: Express.Multer.File; fileName: string },
   onProgress: (progress: number) => void, // Callback for reporting progress
 ): Promise<string> => {
+  const s3Client = await getS3Client();
   try {
     const totalBytes = file.size;
 

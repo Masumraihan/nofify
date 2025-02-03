@@ -27,7 +27,23 @@ const sendCoins = async (user: TTokenUser, payload: Coins) => {
     throw new AppError(StatusCodes.BAD_REQUEST, "Task is not completed");
   }
 
-  return await prisma.coins.create({ data: { ...payload } });
+  return await prisma.$transaction(async (transactionClient) => {
+    const result = await transactionClient.coins.create({ data: { ...payload } });
+
+    // decrease total coins of user
+    await transactionClient.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        totalCoins: {
+          decrement: result.coin,
+        },
+      },
+    });
+
+    return result;
+  });
 };
 
 const getCoins = async (

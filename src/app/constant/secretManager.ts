@@ -15,7 +15,6 @@ export const getSecret = async (secretName: string): Promise<string | null> => {
     const response = await client.send(command);
 
     if (response.SecretString) {
-      console.log("Secret retrieved successfully:", response.SecretString);
       return response.SecretString;
     }
 
