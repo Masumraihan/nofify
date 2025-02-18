@@ -10,11 +10,12 @@ import AppError from "../../errors/AppError";
 import { createToken, verifyToken } from "../../helpers/jwtHelper";
 import { sendMail } from "../../helpers/sendMail";
 import prisma from "../../shared/prisma";
-import { sendOTP, sendSMSMessage } from "../../shared/sendSNSMessage";
+import { sendOTP, sendSNSMessage } from "../../shared/sendSNSMessage";
 import { TTokenUser } from "../../types/common";
 import { generateReferCode } from "./auth.utils";
+import { sendTwilioMessage } from "../../shared/sendMessage";
 
-const signUpIntoDb = async (payload: User) => {
+const signUpIntoDb = async (payload: any) => {
   const isUserExist = await prisma.user.findFirst({
     where: {
       email: payload.email,
@@ -41,6 +42,9 @@ const signUpIntoDb = async (payload: User) => {
     if (payload.password) {
       hashedPassword = await bcrypt.hash(payload.password, Number(config.bcrypt_salt_rounds));
     }
+
+    console.log({ code });
+
     const user = await transactionClient.user.create({
       data: {
         ...payload,
@@ -66,7 +70,10 @@ const signUpIntoDb = async (payload: User) => {
     const currentTime = new Date();
 
     // generate token
-    const expiresAt = moment(currentTime).add(5, "minute");
+    const expiresAt = moment(currentTime).add(
+      process.env.NODE_ENV === "development" ? 2 : 5,
+      "minute",
+    );
 
     const validation = await transactionClient.validation.create({
       data: {
@@ -520,11 +527,14 @@ const forgetPasswordIntoDb = async (payload: {
       throw new AppError(StatusCodes.BAD_REQUEST, "Phone number not found");
     }
 
-    const res = await sendSMSMessage({
-      Message: `Your OTP is NOFIFY ${otp}`,
-      PhoneNumber: userData.phoneNumber,
+    //const res = await sendSNSMessage({
+    //  Message: `Your OTP from NOFIFY is: ${otp}`,
+    //  PhoneNumber: userData.phoneNumber,
+    //});
+    const res = await sendTwilioMessage({
+      phoneNumber: userData.phoneNumber,
+      message: `Your OTP from NOFIFY is: ${otp}`,
     });
-
     console.log(res);
   } else {
     const html = forgetOtpEmail

@@ -1,13 +1,12 @@
-import AWS from "aws-sdk";
-import AppError from "../errors/AppError";
-import { StatusCodes } from "http-status-codes";
 import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+import { StatusCodes } from "http-status-codes";
 import config from "../config";
+import AppError from "../errors/AppError";
 
 export const sendOTP = async (phoneNumber: string, otp: number) => {
   const params = {
     Message: `Your OTP is from NOFIFY ${otp}`,
-    PhoneNumber: `+8801650228207`,
+    PhoneNumber: phoneNumber,
   };
 
   try {
@@ -20,7 +19,7 @@ export const sendOTP = async (phoneNumber: string, otp: number) => {
   }
 };
 
-export const sendSMSMessage = async (params: { Message: string; PhoneNumber: string }) => {
+export const sendSNSMessage = async (params: { Message: string; PhoneNumber: string }) => {
   // Create a new PublishCommand with the specified parameters
   const command = new PublishCommand({
     Message: params.Message,

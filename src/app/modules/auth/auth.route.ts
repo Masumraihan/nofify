@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer, { memoryStorage } from "multer";
 import passport from "passport";
-import { uploadToS3 } from "../../constant/s3";
+import { uploadManyToS3, uploadToS3 } from "../../constant/s3";
 import auth from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import { AuthController } from "./auth.controller";
@@ -24,26 +24,53 @@ router.get(
 
 router.post(
   "/sign-up",
-  upload.single("profilePicture"),
+  upload.fields([
+    { name: "profilePicture", maxCount: 1 },
+    { name: "documents", maxCount: 5 },
+  ]),
   async (req, res, next) => {
     try {
-      if (req.file) {
-        //const fileExtension = req.file.mimetype.split("/")[1] || "png";
-        const profilePicture = await uploadToS3({
-          file: req.file,
-          fileName: `nofify/users/${Math.floor(100000 + Math.random() * 900000)}`,
-        });
-        if (req.body?.data) {
-          req.body = AuthValidations.signUpValidation.parse({
-            ...JSON.parse(req?.body?.data),
-            profilePicture,
-          });
-        }
-      } else {
-        if (req.body?.data) {
-          req.body = AuthValidations.signUpValidation.parse(JSON.parse(req?.body?.data));
-        }
-      }
+      // Type assertion to ensure the structure of req.files
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      console.log({ files });
+      // Upload profile picture if available
+      const profilePicture = files?.["profilePicture"]
+        ? await uploadToS3({
+            file: files["profilePicture"][0],
+            fileName: `nofify/users/${Math.floor(
+              100000 + Math.random() * 900000 + new Date().getTime(),
+            )}`,
+          })
+        : null;
+
+      // Upload documents if available
+      const documents = files?.["documents"]?.length
+        ? await Promise.all(
+            await uploadManyToS3(
+              files["documents"].map((file) => {
+                const key = `nofify/docments/${Math.floor(
+                  100000 + Math.random() * 900000 + new Date().getTime(),
+                )}`;
+                console.log(key);
+                return {
+                  file,
+                  key,
+                  path: key,
+                };
+              }),
+            ),
+          )
+        : [];
+      console.log({ documents });
+      // Parse and validate the request body
+      const parsedData = req.body?.data ? JSON.parse(req.body?.data) : req.body;
+
+      req.body = AuthValidations.signUpValidation.parse({
+        ...parsedData,
+        profilePicture,
+        documents,
+      });
+
       next();
     } catch (error) {
       next(error);
@@ -51,6 +78,7 @@ router.post(
   },
   AuthController.signUp,
 );
+
 router.post("/sign-in", validateRequest(AuthValidations.signInValidation), AuthController.signIn);
 
 router.patch(

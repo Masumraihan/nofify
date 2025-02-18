@@ -80,7 +80,7 @@ const getUsers = async (query: Record<string, unknown>, options: TPaginationOpti
   };
 };
 
-const updateUser = async (id: string, payload: Partial<User>) => {
+const updateUser = async (id: string, payload: Prisma.UserUpdateInput) => {
   const result = await prisma.user.update({
     where: {
       id,
@@ -146,19 +146,21 @@ const getMyProfile = async (user: TTokenUser) => {
       fcmToken: true,
       isActive: true,
       totalCoins: true,
+      code: true,
+      referralCode: true,
     },
   });
   return result;
 };
 
-const updateMyProfile = async (user: TTokenUser, payload: Partial<User>) => {
+const updateMyProfile = async (user: TTokenUser, payload: Prisma.UserUpdateInput) => {
   const result = await prisma.$transaction(async (transactionClient) => {
     const result = await transactionClient.user.update({
       where: {
         id: user.id,
         isDelete: false,
       },
-      data: payload,
+      data: { ...payload },
     });
 
     return result;

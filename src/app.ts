@@ -160,6 +160,7 @@ app.get(
             },
           });
         }
+
         res.cookie("accessToken", accessToken, {
           secure: config.nodeEnv === "production",
           httpOnly: true,
@@ -177,7 +178,10 @@ app.get(
           statusCode: StatusCodes.OK,
           success: true,
           message: "User logged in successfully",
-          data: {},
+          data: {
+            accessToken,
+            refreshToken,
+          },
         });
       }
     } catch (error) {

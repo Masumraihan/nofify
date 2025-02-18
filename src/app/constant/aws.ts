@@ -7,8 +7,8 @@ let s3ClientInstance: S3Client | null = null;
 async function getS3Client(): Promise<S3Client> {
   if (!s3ClientInstance) {
     try {
-      const secret = await getSecret("nof_app");
-      const data = JSON.parse(secret as string);
+      //const secret = await getSecret("nof_app");
+      //const data = JSON.parse(secret as string);
       s3ClientInstance = new S3Client({
         region: config.aws.region,
         credentials: {

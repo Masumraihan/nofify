@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const document = z.object({
+  key: z.string({ required_error: "Document Key is required" }),
+  url: z.string({ required_error: "Document URL is required" }),
+});
+
 // User Model Validation
 export const signUpValidation = z
   .object({
@@ -20,6 +25,7 @@ export const signUpValidation = z
       //  message: "Phone number must be in international format and up to 15 digits long",
       //})
       .optional(),
+    documents: z.array(document).optional(),
     password: z.string({ required_error: "Password is required" }),
     code: z.string().optional(),
     referralCode: z.string().optional(),
