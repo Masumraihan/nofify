@@ -18,7 +18,8 @@ const userSchema = z.object({
 export const updateProfileValidationSchema = z
   .object({
     profilePicture: z.string().optional(),
-    name: z.string().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
     address: z.string().optional(),
     city: z.string().optional(),
 

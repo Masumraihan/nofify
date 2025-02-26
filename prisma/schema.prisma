@@ -38,8 +38,8 @@ model User {
   totalCoins     Int            @default(0)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
-  code           String         @unique
-  referralCode   String?
+  code           String         @unique // my referral code
+  referralCode   String? // referral code of the user
   validation     Validation?
   notifications  Notification[]
   subscription   Subscription[]
