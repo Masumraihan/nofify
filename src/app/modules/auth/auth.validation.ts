@@ -1,34 +1,34 @@
 import { z } from "zod";
-import { USER_ROLE } from "../../enums";
+
+const document = z.object({
+  key: z.string({ required_error: "Document Key is required" }),
+  url: z.string({ required_error: "Document URL is required" }),
+});
 
 // User Model Validation
 export const signUpValidation = z
   .object({
-    name: z
-      .string({ required_error: "Name is required" })
-      .min(3, { message: "Name must be at least 3 characters long" })
-      .max(50, { message: "Name must be at most 50 characters long" })
-      .optional(),
+    firstName: z.string({ required_error: "First name is required" }).trim(),
+    lastName: z.string().trim().optional(),
     email: z
       .string()
       .email({ message: "Invalid email format. Please provide a valid email address." })
+      .trim()
       .optional(),
     profilePicture: z
       .string()
       .url({ message: "Invalid URL for profile picture. Please provide a valid URL." })
       .optional(),
-    role: z.enum([...Object.keys(USER_ROLE)] as [string, ...string[]], {
-      message: "Role must be either 'SUPER_ADMIN', 'USER', 'VENDOR' or 'SUB_ADMIN",
-    }),
-    city: z.string().optional(),
     phoneNumber: z
       .string()
-      .regex(/^\+?[1-9]\d{1,14}$/, {
-        message: "Phone number must be in international format and up to 15 digits long",
-      })
+      //.regex(/^\+?[1-9]\d{1,14}$/, {
+      //  message: "Phone number must be in international format and up to 15 digits long",
+      //})
       .optional(),
-    address: z.string().optional(),
-    password: z.string().optional(),
+    documents: z.array(document).optional(),
+    password: z.string({ required_error: "Password is required" }),
+    code: z.string().optional(),
+    referralCode: z.string().optional(),
   })
   .strict();
 
@@ -72,9 +72,6 @@ const forgetPasswordValidation = z.object({
       phoneNumber: z
         .string()
         // accept space in phone number
-        .regex(/^\+?[1-9]\d{1,14}$/, {
-          message: "Phone number must be in international format and up to 15 digits long",
-        })
         .optional(),
       type: z
         .enum(["email", "mobile"], { message: "Type must be either 'email' or 'mobile'" })
@@ -95,6 +92,11 @@ const resendOtpValidation = z.object({
   body: z
     .object({
       token: z.string({ required_error: "Email is required" }).optional(),
+      phoneNumber: z.string().optional(),
+      type: z
+        .enum(["email", "mobile"], { message: "Type must be either 'email' or 'mobile'" })
+        .optional(),
+      email: z.string().email({ message: "Invalid email address" }).optional(),
     })
     .strict()
     .optional(),

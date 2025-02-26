@@ -1,6 +1,5 @@
-import { Payment, User } from "@prisma/client";
+import { User } from "@prisma/client";
 import Stripe from "stripe";
-import config from "../../config";
 import { stripe } from "../../constant/stripe";
 import prisma from "../../shared/prisma";
 

@@ -18,8 +18,11 @@ const userSchema = z.object({
 export const updateProfileValidationSchema = z
   .object({
     profilePicture: z.string().optional(),
-    name: z.string().optional(),
-    location: z.string().optional(),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+
     phoneNumber: z.string().optional(),
   })
   .strict();

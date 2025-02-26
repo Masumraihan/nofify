@@ -1,7 +1,6 @@
 import { createId } from "@paralleldrive/cuid2";
 import { StatusCodes } from "http-status-codes";
 import config from "../../config";
-
 import { Prisma } from "@prisma/client";
 import AppError from "../../errors/AppError";
 import prisma from "../../shared/prisma";
@@ -32,6 +31,7 @@ const createSubscription = async (user: TTokenUser, payload: { packageId: string
         transactionId,
       },
     });
+    
     const payment = await transactionClient.payment.create({
       data: {
         amount: packageData.price,

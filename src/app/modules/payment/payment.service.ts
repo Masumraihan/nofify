@@ -69,6 +69,17 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
       },
     });
 
+    await transactionClient.user.update({
+      where: {
+        id: paymentData.user.id,
+      },
+      data: {
+        totalCoins: {
+          increment: subscriptionData.package.coin,
+        },
+      },
+    });
+
     return paymentData;
   });
 
@@ -178,14 +189,14 @@ const recentTransactions = async (options: TPaginationOptions) => {
       user: {
         select: {
           profilePicture: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           phoneNumber: true,
-          address: true,
-          gender: true,
           role: true,
         },
       },
+      subscription: true,
     },
     skip,
     take: limit,
@@ -220,13 +231,13 @@ const singleTransaction = (id: string) => {
       user: {
         select: {
           profilePicture: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           phoneNumber: true,
-          address: true,
-          gender: true,
         },
       },
+      subscription: true,
     },
   });
 };

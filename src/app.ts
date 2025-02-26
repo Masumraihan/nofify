@@ -146,15 +146,21 @@ app.get(
             config.jwt.jwtRefreshTokenExpires as string,
           );
         } else {
+          const usersCount = await prisma.user.count({});
+          const referCode = `NOFIFY_${usersCount + 1}`;
+
           const newUser = await prisma.user.create({
             data: {
               email: user?.email as string,
               role: req.body.role as string,
-              name: "",
+              firstName: "",
+              lastName: "",
               phoneNumber: "",
+              code: referCode,
             },
           });
         }
+
         res.cookie("accessToken", accessToken, {
           secure: config.nodeEnv === "production",
           httpOnly: true,
@@ -172,7 +178,10 @@ app.get(
           statusCode: StatusCodes.OK,
           success: true,
           message: "User logged in successfully",
-          data: {},
+          data: {
+            accessToken,
+            refreshToken,
+          },
         });
       }
     } catch (error) {

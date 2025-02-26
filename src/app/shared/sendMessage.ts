@@ -46,3 +46,26 @@ export const verifyCode = async (phoneNumber: string, code: string) => {
     throw error;
   }
 };
+
+export const sendTwilioMessage = async ({
+  phoneNumber,
+  message,
+}: {
+  phoneNumber: string;
+  message: string;
+}) => {
+  try {
+    const res = await client.messages
+      .create({
+        from: config.message.twilioPhoneNumber,
+        body: message,
+        to: phoneNumber,
+      })
+      .then((message) => console.log(message.sid));
+
+    console.log(res);
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};

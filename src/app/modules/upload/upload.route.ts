@@ -7,6 +7,7 @@ import auth from "../../middlewares/auth";
 import sendResponse from "../../shared/sendResponse";
 import { CustomRequest } from "../../types/common";
 import { UploadController } from "./upload.controller";
+import { createId } from "@paralleldrive/cuid2";
 
 const storage = memoryStorage();
 const upload = multer({ storage });
@@ -20,7 +21,7 @@ router.post(
     try {
       if (req?.files && req?.files?.length) {
         const payload = (req.files as any[]).map((file: Express.Multer.File) => {
-          const path = `event/documents`;
+          const path = `nofify/documents/${createId()}`;
           return {
             path,
             file: file.buffer,
@@ -45,7 +46,7 @@ router.post(
   async (req, res, next) => {
     try {
       const file = req.file;
-      const fileName = `event/videos/${Math.floor(100000 + Math.random() * 900000)}`;
+      const fileName = `mpfofu/videos/${Math.floor(100000 + Math.random() * 900000)}`;
       if (file) {
         const user = (req as CustomRequest).user;
         const fileUrl = await uploadWithProgress({ file, fileName }, (progress) => {

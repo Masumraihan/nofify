@@ -23,28 +23,29 @@ model Validation {
 
 model User {
   id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
+  firstName      String
+  lastName       String?
   email          String
   profilePicture String?        @default("")
   phoneNumber    String?
-  address        String?        @default("")
-  city           String?        @default("")
-  gender         String?        @default("")
   fcmToken       String?        @default("")
   password       String?        @default("")
   role           String         @default("USER")
+  documents      Json[]
   isDelete       Boolean        @default(false)
   isActive       Boolean        @default(true)
   stripeId       String?        @default("")
   totalCoins     Int            @default(0)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  code           String         @unique // my referral code
+  referralCode   String? // referral code of the user
   validation     Validation?
   notifications  Notification[]
   subscription   Subscription[]
   payment        Payment[]
   tasks          Task[]
-  taskAssign     TaskAssign[]
+  assignTasks    AssignTask[]
   files          File[]
 
   @@map("users")
@@ -96,10 +97,11 @@ model Payment {
 
 model Category {
   id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
+  name          String        @unique
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   subCategories SubCategory[]
+  tasks         Task[]
 
   @@map("categories")
 }
@@ -108,32 +110,36 @@ model SubCategory {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   categoryId String?   @db.ObjectId
   category   Category? @relation(fields: [categoryId], references: [id])
-  name       String
+  name       String    @unique
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+  tasks      Task[]
 
   @@map("subCategories")
 }
 
 model Task {
-  id          String       @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String       @db.ObjectId
-  user        User         @relation(fields: [userId], references: [id])
-  title       String
-  category    String?
-  subCategory String?
-  date        String
-  time        String
-  description String
-  documents   File[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  taskAssign  TaskAssign[]
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String       @db.ObjectId
+  user          User         @relation(fields: [userId], references: [id])
+  title         String
+  assignedTo    String
+  categoryId    String       @db.ObjectId
+  category      Category     @relation(fields: [categoryId], references: [id])
+  subCategoryId String?      @db.ObjectId
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  date          String
+  time          String
+  description   String
+  documents     File[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  assignTasks   AssignTask[]
 
   @@map("tasks")
 }
 
-model TaskAssign {
+model AssignTask {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
   taskId     String   @db.ObjectId
   task       Task     @relation(fields: [taskId], references: [id])
@@ -143,8 +149,21 @@ model TaskAssign {
   user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  coins      Coins[]
 
-  @@map("taskAssigns")
+  @@map("assignTask")
+}
+
+model Coins {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  assignTaskId String     @db.ObjectId
+  assignTask   AssignTask @relation(fields: [assignTaskId], references: [id])
+  coin         Int
+  isRedeemed   Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("coins")
 }
 
 model File {

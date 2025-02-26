@@ -1,0 +1,286 @@
+import { AssignTask, Prisma } from "@prisma/client";
+import { paginationHelper } from "../../helpers/paginationHelper";
+import prisma from "../../shared/prisma";
+import { TTokenUser } from "../../types/common";
+import { TPaginationOptions } from "../../types/pagination";
+import { assignTaskFilterableFields, taskSearchableFields } from "./assignTask.constant";
+
+const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
+  const isExist = await prisma.assignTask.findFirst({
+    where: {
+      taskId: payload.taskId,
+      userId: payload.userId,
+    },
+  });
+
+  if (isExist) {
+    throw new Error("You have already assigned this task");
+  }
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: {
+      id: payload.taskId,
+      userId: user.id,
+    },
+  });
+
+  return await prisma.assignTask.create({ data: { ...payload } });
+};
+
+const createManyAssignTask = async (
+  user: TTokenUser,
+  payload: { taskId: string; userIds: string[] },
+) => {
+  const isExist = await prisma.assignTask.findFirst({
+    where: {
+      taskId: payload.taskId,
+      userId: {
+        in: payload.userIds,
+      },
+    },
+  });
+
+  if (isExist) {
+    throw new Error("You have already assigned this task");
+  }
+
+  const task = await prisma.task.findUniqueOrThrow({
+    where: {
+      id: payload.taskId,
+      userId: user.id,
+    },
+  });
+
+  const result = await prisma.assignTask.createMany({
+    data: payload.userIds.map((userId) => ({ taskId: payload.taskId, userId })),
+  });
+  return result;
+};
+
+const myTasks = async (
+  user: TTokenUser,
+  query: Record<string, unknown>,
+  options: TPaginationOptions,
+) => {
+  const andConditions: Prisma.AssignTaskWhereInput[] = [];
+  const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
+  const { searchTerm, ...filterQuery } = query;
+
+  if (searchTerm) {
+    andConditions.push({
+      task: {
+        OR: taskSearchableFields.map((field) => ({
+          [field]: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        })),
+      },
+    });
+  }
+
+  if (Object.keys(filterQuery).length > 0) {
+    andConditions.push({
+      AND: Object.entries(filterQuery).map(([key, value]) => {
+        if (assignTaskFilterableFields.includes(key)) {
+          return {
+            [key]: {
+              equals: value,
+            },
+          };
+        } else {
+          return {
+            task: {
+              [key]: {
+                equals: value,
+              },
+            },
+          };
+        }
+      }),
+    });
+  }
+
+  const whereConditions: Prisma.AssignTaskWhereInput =
+    andConditions.length > 0 ? { AND: andConditions, userId: user.id } : { userId: user.id };
+
+  const result = await prisma.assignTask.findMany({
+    where: { ...whereConditions },
+    skip,
+    take: limit,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+      task: {
+        include: {
+          category: true,
+          subCategory: true,
+          documents: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const total = await prisma.assignTask.count({ where: { ...whereConditions } });
+
+  const meta = {
+    total,
+    page,
+    limit,
+    totalPage: Math.ceil(total / limit),
+  };
+
+  return {
+    meta,
+    data: result,
+  };
+};
+
+const myAssignTasks = async (
+  user: TTokenUser,
+  query: Record<string, unknown>,
+  options: TPaginationOptions,
+) => {
+  const andConditions: Prisma.AssignTaskWhereInput[] = [];
+
+  const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
+
+  const { searchTerm, ...filterQuery } = query;
+
+  if (Object.keys(filterQuery).length > 0) {
+    andConditions.push({
+      AND: Object.entries(filterQuery).map(([key, value]) => {
+        if (assignTaskFilterableFields.includes(key)) {
+          return {
+            [key]: {
+              equals: value,
+            },
+          };
+        } else {
+          return {
+            task: {
+              [key]: {
+                equals: value,
+              },
+            },
+          };
+        }
+      }),
+    });
+  }
+
+  const whereConditions: Prisma.AssignTaskWhereInput =
+    andConditions.length > 0
+      ? { AND: andConditions, task: { userId: user.id } }
+      : { task: { userId: user.id } };
+
+  const result = await prisma.assignTask.findMany({
+    where: { ...whereConditions },
+    skip,
+    take: limit,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+      task: {
+        include: {
+          category: true,
+          subCategory: true,
+          documents: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const total = await prisma.assignTask.count({
+    where: { ...whereConditions, task: { userId: user.id } },
+  });
+
+  const meta = {
+    total,
+    page,
+    limit,
+    totalPage: Math.ceil(total / limit),
+  };
+
+  return {
+    meta,
+    data: result,
+  };
+};
+
+const assignTasksDetails = async (id: string) => {
+  const result = await prisma.assignTask.findMany({
+    where: {
+      id,
+    },
+    include: {
+      task: {
+        include: {
+          category: true,
+          subCategory: true,
+          documents: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return result;
+};
+
+const updateAssignTask = async (user: TTokenUser, id: string, payload: Partial<AssignTask>) => {
+  const result = await prisma.assignTask.update({ where: { id, userId: user.id }, data: payload });
+  return result;
+};
+
+const updateAssignTaskStatus = async (
+  user: TTokenUser,
+  id: string,
+  payload: Partial<AssignTask>,
+) => {
+  const result = await prisma.assignTask.update({ where: { id, userId: user.id }, data: payload });
+  return result;
+};
+
+const deleteAssignTask = async (user: TTokenUser, id: string) => {
+  const result = await prisma.assignTask.deleteMany({ where: { id, userId: user.id } });
+  return result;
+};
+
+export const AssignTaskServices = {
+  createAssignTask,
+  createManyAssignTask,
+  myTasks,
+  myAssignTasks,
+  assignTasksDetails,
+  updateAssignTask,
+  updateAssignTaskStatus,
+  deleteAssignTask,
+};

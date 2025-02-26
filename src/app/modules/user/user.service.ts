@@ -55,7 +55,8 @@ const getUsers = async (query: Record<string, unknown>, options: TPaginationOpti
     select: {
       id: true,
       email: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       phoneNumber: true,
       role: true,
       profilePicture: true,
@@ -79,7 +80,7 @@ const getUsers = async (query: Record<string, unknown>, options: TPaginationOpti
   };
 };
 
-const updateUser = async (id: string, payload: Partial<User>) => {
+const updateUser = async (id: string, payload: Prisma.UserUpdateInput) => {
   const result = await prisma.user.update({
     where: {
       id,
@@ -112,6 +113,8 @@ const getUser = async (id: string) => {
     },
     select: {
       id: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       profilePicture: true,
@@ -119,9 +122,6 @@ const getUser = async (id: string) => {
       updatedAt: true,
       isActive: true,
       phoneNumber: true,
-      address: true,
-      gender: true,
-      name: true,
     },
   });
   return result;
@@ -135,7 +135,8 @@ const getMyProfile = async (user: TTokenUser) => {
     },
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       profilePicture: true,
@@ -144,19 +145,22 @@ const getMyProfile = async (user: TTokenUser) => {
       updatedAt: true,
       fcmToken: true,
       isActive: true,
+      totalCoins: true,
+      code: true,
+      referralCode: true,
     },
   });
   return result;
 };
 
-const updateMyProfile = async (user: TTokenUser, payload: Partial<User>) => {
+const updateMyProfile = async (user: TTokenUser, payload: Prisma.UserUpdateInput) => {
   const result = await prisma.$transaction(async (transactionClient) => {
     const result = await transactionClient.user.update({
       where: {
         id: user.id,
         isDelete: false,
       },
-      data: payload,
+      data: { ...payload },
     });
 
     return result;
@@ -184,7 +188,7 @@ const deleteMyProfile = async (user: TTokenUser) => {
 
 const uploadImage = async (file: Express.Multer.File) => {
   const extension = file.originalname.split(".")[1];
-  const fileName = `event/${Math.floor(100000 + Math.random() * 900000)}.${extension}`;
+  const fileName = `nofify/${Math.floor(100000 + Math.random() * 900000)}.${extension}`;
   const result = await uploadToS3({ file, fileName: `${fileName}` });
   return {
     url: result,

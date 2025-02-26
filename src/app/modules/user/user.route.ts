@@ -27,30 +27,26 @@ router.patch(
   upload.single("profilePicture"),
   async (req, res, next) => {
     try {
+      let profilePicture = null;
+
+      // If a profile picture is uploaded, upload it to S3
       if (req.file) {
-        const profilePicture = await uploadToS3({
+        profilePicture = await uploadToS3({
           file: req.file,
-          fileName: `task-management/users/${createId()}`,
+          fileName: `nofify/users/${createId()}`,
         });
-        if (req.body?.data) {
-          req.body = UserValidations.updateProfileValidationSchema.parse({
-            ...JSON.parse(req?.body?.data),
-            profilePicture,
-          });
-        } else {
-          req.body = UserValidations.updateProfileValidationSchema.parse({
-            profilePicture,
-          });
-        }
-      } else {
-        if (req.body?.data) {
-          req.body = UserValidations.updateProfileValidationSchema.parse(
-            JSON.parse(req?.body?.data),
-          );
-        } else if (req.body) {
-          req.body = UserValidations.updateProfileValidationSchema.parse(req.body);
-        }
       }
+
+      // Check if there's any data in req.body and validate
+      const parsedData = req.body?.data ? JSON.parse(req.body?.data) : req.body;
+
+      // Validate the body data, including the profile picture if it's present
+      req.body = UserValidations.updateProfileValidationSchema.parse({
+        ...parsedData,
+        profilePicture,
+      });
+
+      // Proceed to the next middleware/controller
       next();
     } catch (error) {
       next(error);
@@ -58,6 +54,7 @@ router.patch(
   },
   UserControllers.updateMyProfile,
 );
+
 router.delete("/profile", auth("SUPER_ADMIN", "USER"), UserControllers.deleteMyProfile);
 
 router.post(

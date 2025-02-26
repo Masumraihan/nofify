@@ -3,7 +3,8 @@ import { USER_ROLE } from "../app/enums";
 import prisma from "../app/shared/prisma";
 import config from "../app/config";
 const superAdmin = {
-  name: "Super Admin",
+  firstName: "Super",
+  lastName: "Admin",
   email: "super.admin@gmail.com",
   address: "Dhaka",
   mobile: "01700000000",
@@ -25,7 +26,8 @@ const seedSuperAdmin = async () => {
       const result = await prisma.$transaction(async (transactionClient) => {
         const result = await transactionClient.user.create({
           data: {
-            name: superAdmin.name,
+            firstName: superAdmin.firstName,
+            lastName: superAdmin.lastName,
             email: superAdmin.email,
             phoneNumber: superAdmin.mobile,
             role: superAdmin.role,
@@ -33,6 +35,7 @@ const seedSuperAdmin = async () => {
             profilePicture: "https://goto.now/lcP4v",
             isDelete: false,
             isActive: true,
+            code: `NOFIFY-001`,
           },
         });
         await transactionClient.validation.create({
