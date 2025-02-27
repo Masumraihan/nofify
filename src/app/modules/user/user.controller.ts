@@ -9,14 +9,16 @@ import { PaginationOption } from "../../../constant/common";
 import { CustomRequest } from "../../types/common";
 
 const getUsers = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
   const query = pick(req.query, userFilterableFields);
   const option = pick(req.query, PaginationOption);
-  const result = await UserServices.getUsers(query, option);
+  const { data, meta } = await UserServices.getUsers(user,query, option);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: "Users fetched successfully",
-    data: result,
+    meta,
+    data,
   });
 });
 

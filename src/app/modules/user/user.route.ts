@@ -10,7 +10,7 @@ const storage = memoryStorage();
 const upload = multer({ storage });
 const router = express.Router();
 
-router.get("/users", auth("SUPER_ADMIN"), UserControllers.getUsers);
+router.get("/users", auth("SUPER_ADMIN", "USER"), UserControllers.getUsers);
 router.get("/profile", auth("SUPER_ADMIN", "USER"), UserControllers.getMyProfile);
 router.get("/:id", auth("SUPER_ADMIN"), UserControllers.getUser);
 

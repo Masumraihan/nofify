@@ -46,7 +46,6 @@ router.post(
 
           req.body = taskData;
         }
-        next();
       } else {
         if (data) {
           console.log(JSON.parse(data), "data");
@@ -55,9 +54,8 @@ router.post(
           });
           req.body = taskData;
         }
-
-        next();
       }
+      next();
     } catch (error) {
       next(error);
     }
@@ -84,8 +82,6 @@ router.patch(
 
         documents = await uploadManyToS3(payload);
       }
-
-      console.log(documents, req.files);
 
       // Prepare the validation payload
       const validationPayload = {

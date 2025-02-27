@@ -11,7 +11,7 @@ import { deleteManyFromS3 } from "../../constant/s3";
 
 const createTask = async (
   user: TTokenUser,
-  payload: Task & { subCategory?: string; category: string; documents: File[] },
+  payload: Task & { subCategory?: string; category: string; documents: File[]; userIds?: string[] },
 ) => {
   if (!payload.subCategoryId && !payload.subCategory) {
     throw new Error("subCategory or subCategoryId is required");
@@ -70,9 +70,34 @@ const createTask = async (
     throw new AppError(StatusCodes.BAD_REQUEST, "Category is required");
   }
 
-  return await prisma.task.create({
-    data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
+  if (!subCategory?.id) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "SubCategory is required");
+  }
+
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const taskData = await transactionClient.task.create({
+      data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
+    });
+
+    if (payload.userIds?.length) {
+      await transactionClient.assignTask.createMany({
+        data: payload.userIds.map((id) => ({
+          taskId: taskData.id,
+          userId: id,
+        })),
+      });
+    } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
+      await transactionClient.assignTask.create({
+        data: {
+          taskId: taskData.id,
+          userId: user.id,
+        },
+      });
+    }
+
+    return taskData;
   });
+  return result;
 };
 
 const getTasks = async (query: Record<string, unknown>, options: TPaginationOptions) => {
