@@ -59,6 +59,7 @@ const getUsers = async (
     select: {
       id: true,
       email: user.role === USER_ROLE.SUPER_ADMIN,
+      fullName: true,
       firstName: true,
       lastName: true,
       phoneNumber: user.role === USER_ROLE.SUPER_ADMIN,
