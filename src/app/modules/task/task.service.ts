@@ -36,7 +36,7 @@ const createTask = async (
     }
   }
 
-  const { subCategory: subC, category: c, documents, ...data } = payload;
+  const { subCategory: subC, category: c, documents, userIds, ...data } = payload;
 
   let category;
   let subCategory;
@@ -79,9 +79,9 @@ const createTask = async (
       data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
     });
 
-    if (payload.userIds?.length) {
+    if (userIds?.length) {
       await transactionClient.assignTask.createMany({
-        data: payload.userIds.map((id) => ({
+        data: userIds.map((id) => ({
           taskId: taskData.id,
           userId: id,
         })),
