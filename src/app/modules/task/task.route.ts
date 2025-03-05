@@ -21,7 +21,6 @@ router.post(
       const files = req.files as Express.Multer.File[];
       const data = req.body.data;
 
-      console.log(files, "files", files.length);
       if (files.length) {
         const payload = files.map((file: Express.Multer.File) => {
           const path = `nofify/documents/${createId()}`;

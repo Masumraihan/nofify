@@ -3,7 +3,12 @@ import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
-import { assignTaskFilterableFields, taskSearchableFields } from "./assignTask.constant";
+import {
+  ASSIGN_TASK_STATUS,
+  assignTaskFilterableFields,
+  taskSearchableFields,
+} from "./assignTask.constant";
+import { TASK_ASSIGNED_TO } from "./task.constant";
 
 const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
   const isExist = await prisma.assignTask.findFirst({
@@ -24,7 +29,9 @@ const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
     },
   });
 
-  return await prisma.assignTask.create({ data: { ...payload } });
+  return await prisma.assignTask.create({
+    data: { ...payload, isAccepted: (task.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true },
+  });
 };
 
 const createManyAssignTask = async (
@@ -120,7 +127,13 @@ const myTasks = async (
         include: {
           category: true,
           subCategory: true,
-          documents: true,
+          documents: {
+            select: {
+              id: true,
+              url: true,
+              key: true,
+            },
+          },
           user: {
             select: {
               firstName: true,
@@ -201,7 +214,13 @@ const myAssignTasks = async (
         include: {
           category: true,
           subCategory: true,
-          documents: true,
+          documents: {
+            select: {
+              id: true,
+              url: true,
+              key: true,
+            },
+          },
           user: {
             select: {
               firstName: true,
@@ -240,7 +259,13 @@ const assignTasksDetails = async (id: string) => {
         include: {
           category: true,
           subCategory: true,
-          documents: true,
+          documents: {
+            select: {
+              id: true,
+              url: true,
+              key: true,
+            },
+          },
           user: {
             select: {
               firstName: true,

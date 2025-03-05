@@ -78,7 +78,17 @@ const createTask = async (
     const taskData = await transactionClient.task.create({
       data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
     });
-
+    console.log({ documents });
+    if (documents?.length) {
+      await transactionClient.file.createMany({
+        data: documents.map((file) => ({
+          taskId: taskData.id,
+          key: file.key,
+          url: file.url,
+          userId: user.id,
+        })),
+      });
+    }
     if (userIds?.length) {
       await transactionClient.assignTask.createMany({
         data: userIds.map((id) => ({
@@ -91,6 +101,7 @@ const createTask = async (
         data: {
           taskId: taskData.id,
           userId: user.id,
+          isAccepted: true,
         },
       });
     }
@@ -140,7 +151,13 @@ const getTasks = async (query: Record<string, unknown>, options: TPaginationOpti
     },
     include: {
       category: true,
-      documents: true,
+      documents: {
+        select: {
+          id: true,
+          url: true,
+          key: true,
+        },
+      },
       subCategory: true,
     },
   });
@@ -174,7 +191,13 @@ const getTaskById = async (id: string) => {
     include: {
       category: true,
       subCategory: true,
-      documents: true,
+      documents: {
+        select: {
+          id: true,
+          url: true,
+          key: true,
+        },
+      },
       user: {
         select: {
           firstName: true,

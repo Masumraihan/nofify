@@ -48,6 +48,7 @@ model User {
   tasks          Task[]
   assignTasks    AssignTask[]
   files          File[]
+  withdrawals    Withdrawal[]
 
   @@map("users")
 }
@@ -165,6 +166,18 @@ model Coins {
   updatedAt    DateTime   @updatedAt
 
   @@map("coins")
+}
+
+model Withdrawal {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  isPaid    Boolean  @default(false)
+  coin    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("withdrawals")
 }
 
 model File {

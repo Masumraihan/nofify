@@ -65,7 +65,7 @@ export const uploadManyToS3 = async (
   const s3Client = await getS3Client();
 
   try {
-    const uploadPromises = files.map(async ({ file, path, key, extension = "png" }) => {
+    const uploadPromises = files.map(async ({ file, path, key, extension }) => {
       const newFileName = key ? key : `${Math.floor(100000 + Math.random() * 900000)}${Date.now()}`;
 
       const fileKey = `${path}/${newFileName}.${extension}`;
