@@ -19,6 +19,7 @@ const createTaskValidationSchema = z
     time: z.string({ required_error: "Time is required" }),
     description: z.string({ required_error: "Description is required" }),
     documents: z.array(documentValidationSchema).optional(),
+    userIds: z.array(z.string()).optional(),
   })
   .strict();
 

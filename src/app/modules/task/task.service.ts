@@ -11,7 +11,7 @@ import { deleteManyFromS3 } from "../../constant/s3";
 
 const createTask = async (
   user: TTokenUser,
-  payload: Task & { subCategory?: string; category: string; documents: File[] },
+  payload: Task & { subCategory?: string; category: string; documents: File[]; userIds?: string[] },
 ) => {
   if (!payload.subCategoryId && !payload.subCategory) {
     throw new Error("subCategory or subCategoryId is required");
@@ -36,7 +36,7 @@ const createTask = async (
     }
   }
 
-  const { subCategory: subC, category: c, documents, ...data } = payload;
+  const { subCategory: subC, category: c, documents, userIds, ...data } = payload;
 
   let category;
   let subCategory;
@@ -70,9 +70,45 @@ const createTask = async (
     throw new AppError(StatusCodes.BAD_REQUEST, "Category is required");
   }
 
-  return await prisma.task.create({
-    data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
+  if (!subCategory?.id) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "SubCategory is required");
+  }
+
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const taskData = await transactionClient.task.create({
+      data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
+    });
+    console.log({ documents });
+    if (documents?.length) {
+      await transactionClient.file.createMany({
+        data: documents.map((file) => ({
+          taskId: taskData.id,
+          key: file.key,
+          url: file.url,
+          userId: user.id,
+        })),
+      });
+    }
+    if (userIds?.length) {
+      await transactionClient.assignTask.createMany({
+        data: userIds.map((id) => ({
+          taskId: taskData.id,
+          userId: id,
+        })),
+      });
+    } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
+      await transactionClient.assignTask.create({
+        data: {
+          taskId: taskData.id,
+          userId: user.id,
+          isAccepted: true,
+        },
+      });
+    }
+
+    return taskData;
   });
+  return result;
 };
 
 const getTasks = async (query: Record<string, unknown>, options: TPaginationOptions) => {
@@ -115,7 +151,13 @@ const getTasks = async (query: Record<string, unknown>, options: TPaginationOpti
     },
     include: {
       category: true,
-      documents: true,
+      documents: {
+        select: {
+          id: true,
+          url: true,
+          key: true,
+        },
+      },
       subCategory: true,
     },
   });
@@ -149,7 +191,13 @@ const getTaskById = async (id: string) => {
     include: {
       category: true,
       subCategory: true,
-      documents: true,
+      documents: {
+        select: {
+          id: true,
+          url: true,
+          key: true,
+        },
+      },
       user: {
         select: {
           firstName: true,

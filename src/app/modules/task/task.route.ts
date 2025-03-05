@@ -21,7 +21,6 @@ router.post(
       const files = req.files as Express.Multer.File[];
       const data = req.body.data;
 
-      console.log(files, "files", files.length);
       if (files.length) {
         const payload = files.map((file: Express.Multer.File) => {
           const path = `nofify/documents/${createId()}`;
@@ -46,7 +45,6 @@ router.post(
 
           req.body = taskData;
         }
-        next();
       } else {
         if (data) {
           console.log(JSON.parse(data), "data");
@@ -55,9 +53,8 @@ router.post(
           });
           req.body = taskData;
         }
-
-        next();
       }
+      next();
     } catch (error) {
       next(error);
     }
@@ -84,8 +81,6 @@ router.patch(
 
         documents = await uploadManyToS3(payload);
       }
-
-      console.log(documents, req.files);
 
       // Prepare the validation payload
       const validationPayload = {

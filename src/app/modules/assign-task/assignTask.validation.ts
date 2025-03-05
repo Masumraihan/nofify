@@ -22,11 +22,12 @@ const updateAssignTaskValidation = z.object({
 });
 
 const updateAssignTaskStatus = z.object({
-  body: z.object({
-    taskId: z.string({ required_error: "Task ID is required" }),
-    isAccepted: z.boolean({ required_error: "isAccepted is required" }),
-    status: z.enum([...Object.values(ASSIGN_TASK_STATUS)] as [string, ...string[]]).optional(),
-  }),
+  body: z
+    .object({
+      isAccepted: z.boolean().optional(),
+      status: z.enum([...Object.values(ASSIGN_TASK_STATUS)] as [string, ...string[]]).optional(),
+    })
+    .strict(),
 });
 
 export const AssignTaskValidations = {

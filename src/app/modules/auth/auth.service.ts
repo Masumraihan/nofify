@@ -48,6 +48,7 @@ const signUpIntoDb = async (payload: any) => {
     const user = await transactionClient.user.create({
       data: {
         ...payload,
+        fullName: payload.firstName + " " + payload.lastName,
         password: hashedPassword,
         code,
       },

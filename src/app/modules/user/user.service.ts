@@ -7,7 +7,11 @@ import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
 import { userSearchableFields } from "./user.constant";
 
-const getUsers = async (query: Record<string, unknown>, options: TPaginationOptions) => {
+const getUsers = async (
+  user: TTokenUser,
+  query: Record<string, unknown>,
+  options: TPaginationOptions,
+) => {
   const andConditions: Prisma.UserWhereInput[] = [];
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
 
@@ -54,11 +58,12 @@ const getUsers = async (query: Record<string, unknown>, options: TPaginationOpti
     },
     select: {
       id: true,
-      email: true,
+      email: user.role === USER_ROLE.SUPER_ADMIN,
+      fullName: true,
       firstName: true,
       lastName: true,
-      phoneNumber: true,
-      role: true,
+      phoneNumber: user.role === USER_ROLE.SUPER_ADMIN,
+      role: user.role === USER_ROLE.SUPER_ADMIN,
       profilePicture: true,
       createdAt: true,
       updatedAt: true,
@@ -75,6 +80,7 @@ const getUsers = async (query: Record<string, unknown>, options: TPaginationOpti
       total,
       page,
       limit,
+      totalPage: Math.ceil(total / limit),
     },
     data: result,
   };

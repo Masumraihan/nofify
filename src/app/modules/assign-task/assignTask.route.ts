@@ -20,6 +20,7 @@ router.post(
   validateRequest(AssignTaskValidations.crateManyAssignTaskValidation),
   AssignTaskControllers.createManyAssignTask,
 );
+
 router.patch(
   "/update/:id",
   auth("USER"),
@@ -29,6 +30,7 @@ router.patch(
 
 router.patch(
   "/update-status/:id",
+  auth("USER"),
   validateRequest(AssignTaskValidations.updateAssignTaskStatus),
   AssignTaskControllers.updateAssignTaskStatus,
 );

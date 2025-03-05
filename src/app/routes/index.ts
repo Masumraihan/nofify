@@ -12,6 +12,7 @@ import { UploadRoutes } from "../modules/upload/upload.route";
 import { UserRoutes } from "../modules/user/user.route";
 import { SubscriptionRoutes } from "../modules/subscription/subscription.route";
 import { CoinsRoutes } from "../modules/coin/coins.route";
+import { WithdrawalRoutes } from "../modules/withdrawal/withdrawal.route";
 
 const router = express.Router();
 
@@ -47,6 +48,10 @@ const moduleRoutes = [
   {
     path: "/assign-task",
     route: AssignTaskRoutes,
+  },
+  {
+    path: "/withdrawal",
+    route: WithdrawalRoutes,
   },
   {
     path: "/coins",
