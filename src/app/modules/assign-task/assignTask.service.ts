@@ -9,6 +9,8 @@ import {
   taskSearchableFields,
 } from "./assignTask.constant";
 import { TASK_ASSIGNED_TO } from "./task.constant";
+import AppError from "../../errors/AppError";
+import { StatusCodes } from "http-status-codes";
 
 const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
   const isExist = await prisma.assignTask.findFirst({
@@ -119,6 +121,7 @@ const myTasks = async (
     include: {
       user: {
         select: {
+          profilePicture: true,
           firstName: true,
           lastName: true,
         },
@@ -136,6 +139,7 @@ const myTasks = async (
           },
           user: {
             select: {
+              profilePicture: true,
               firstName: true,
               lastName: true,
             },
@@ -206,6 +210,7 @@ const myAssignTasks = async (
     include: {
       user: {
         select: {
+          profilePicture: true,
           firstName: true,
           lastName: true,
         },
@@ -223,6 +228,7 @@ const myAssignTasks = async (
           },
           user: {
             select: {
+              profilePicture: true,
               firstName: true,
               lastName: true,
             },
@@ -268,6 +274,7 @@ const assignTasksDetails = async (id: string) => {
           },
           user: {
             select: {
+              profilePicture: true,
               firstName: true,
               lastName: true,
             },
@@ -290,6 +297,16 @@ const updateAssignTaskStatus = async (
   id: string,
   payload: Partial<AssignTask>,
 ) => {
+  const assignTask = await prisma.assignTask.findUniqueOrThrow({ where: { id, userId: user.id } });
+
+  if (assignTask.status === ASSIGN_TASK_STATUS.CANCELLED) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "You already cancel this task");
+  }
+
+  if (!assignTask.isAccepted) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "User did not accept this task");
+  }
+
   const result = await prisma.assignTask.update({ where: { id, userId: user.id }, data: payload });
   return result;
 };

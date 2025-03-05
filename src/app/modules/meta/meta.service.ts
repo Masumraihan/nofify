@@ -134,9 +134,48 @@ const metaCounts = async () => {
     },
   });
 
+  const todayRevenue = await prisma.payment.aggregate({
+    where: {
+      status: PAYMENT_STATUS.PAID,
+      createdAt: {
+        gte: new Date(),
+      },
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  const thisMonthRevenue = await prisma.payment.aggregate({
+    where: {
+      status: PAYMENT_STATUS.PAID,
+      createdAt: {
+        gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      },
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  const thisYearRevenue = await prisma.payment.aggregate({
+    where: {
+      status: PAYMENT_STATUS.PAID,
+      createdAt: {
+        gte: new Date(new Date().getFullYear(), 0, 1),
+      },
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
   return {
     totalUsers: totalUserCount || 0,
     totalRevenue: totalRevenue._sum.amount || 0,
+    todayRevenue: todayRevenue._sum.amount || 0,
+    thisMonthRevenue: thisMonthRevenue._sum.amount || 0,
+    thisYearRevenue: thisYearRevenue._sum.amount || 0,
   };
 };
 
