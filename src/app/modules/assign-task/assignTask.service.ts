@@ -200,7 +200,39 @@ const myAssignTasks = async (
 
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
 
-  const { searchTerm, ...filterQuery } = query;
+  const { searchTerm, date, ...filterQuery } = query;
+
+  if (searchTerm) {
+    andConditions.push({
+      task: {
+        OR: taskSearchableFields.map((field) => ({
+          [field]: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        })),
+      },
+    });
+  }
+
+  if (date) {
+    const startDate = new Date(date as string);
+    const endDate = new Date(date as string);
+
+    // Set start time to 00:00:00
+    startDate.setHours(0, 0, 0, 0);
+
+    // Set end time to 23:59:59
+    endDate.setHours(23, 59, 59, 999);
+
+    andConditions.push({
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    });
+  }
+
   if (Object.keys(filterQuery).length > 0) {
     andConditions.push({
       AND: Object.entries(filterQuery).map(([key, value]) => {
