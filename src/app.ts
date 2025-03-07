@@ -36,7 +36,7 @@ const corsOrigins = [
 // PARSERS
 app.use(
   cors({
-    origin: config.nodeEnv === "development" ? "*" : corsOrigins,
+    origin: corsOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   }),

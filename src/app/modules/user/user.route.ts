@@ -15,7 +15,7 @@ router.get("/profile", auth("SUPER_ADMIN", "USER"), UserControllers.getMyProfile
 router.get("/:id", auth("SUPER_ADMIN"), UserControllers.getUser);
 
 router.patch(
-  "/user/:id",
+  "/:id",
   auth("SUPER_ADMIN"),
   validateRequest(UserValidations.userSchema.partial()),
   UserControllers.updateUser,

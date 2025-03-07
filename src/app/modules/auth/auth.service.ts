@@ -549,8 +549,17 @@ const forgetPasswordIntoDb = async (payload: {
   };
 };
 
-const resetPassword = async (token: string, payload: { password: string }) => {
-  const decode = verifyToken(token, config.jwt.jwtVerifyAccountSecret as Secret) as TTokenUser;
+const resetPassword = async (
+  token: string,
+  payload: { password: string },
+  token_type: string | null,
+) => {
+  const decode = verifyToken(
+    token,
+    token_type === "access_token"
+      ? (config.jwt.jwtAccessTokenSecret as Secret)
+      : (config.jwt.jwtVerifyAccountSecret as Secret),
+  ) as TTokenUser;
   const userData = await prisma.user.findUniqueOrThrow({
     where: { email: decode.email, id: decode.id, isDelete: false },
   });

@@ -11,6 +11,7 @@ import {
 import { TASK_ASSIGNED_TO } from "./task.constant";
 import AppError from "../../errors/AppError";
 import { StatusCodes } from "http-status-codes";
+import { sendNotification } from "../../shared/sendNotification";
 
 const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
   const isExist = await prisma.assignTask.findFirst({
@@ -50,10 +51,13 @@ const createManyAssignTask = async (
   });
 
   if (isExist) {
-    throw new Error("You have already assigned this task");
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      "At least one selected user is already assigned to this task.",
+    );
   }
 
-  const task = await prisma.task.findUniqueOrThrow({
+  await prisma.task.findUniqueOrThrow({
     where: {
       id: payload.taskId,
       userId: user.id,
@@ -63,6 +67,21 @@ const createManyAssignTask = async (
   const result = await prisma.assignTask.createMany({
     data: payload.userIds.map((userId) => ({ taskId: payload.taskId, userId })),
   });
+
+  //SEND EACH USER A NOTIFICATION
+
+  const users = await prisma.user.findMany({ where: { id: { in: payload.userIds } } });
+
+  users.forEach(async (user) => {
+    if (user.fcmToken) {
+      sendNotification([user.fcmToken], {
+        title: "New Task Assigned",
+        body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
+        userId: user.id,
+      });
+    }
+  });
+
   return result;
 };
 
@@ -92,6 +111,9 @@ const myTasks = async (
     andConditions.push({
       AND: Object.entries(filterQuery).map(([key, value]) => {
         if (assignTaskFilterableFields.includes(key)) {
+          if (key === "isAccepted") {
+            value = value === "true" ? true : false;
+          }
           return {
             [key]: {
               equals: value,
@@ -124,6 +146,11 @@ const myTasks = async (
           profilePicture: true,
           firstName: true,
           lastName: true,
+        },
+      },
+      coins: {
+        select: {
+          coin: true,
         },
       },
       task: {
@@ -174,11 +201,13 @@ const myAssignTasks = async (
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
 
   const { searchTerm, ...filterQuery } = query;
-
   if (Object.keys(filterQuery).length > 0) {
     andConditions.push({
       AND: Object.entries(filterQuery).map(([key, value]) => {
         if (assignTaskFilterableFields.includes(key)) {
+          if (key === "isAccepted") {
+            value = value === "true" ? true : false;
+          }
           return {
             [key]: {
               equals: value,
@@ -213,6 +242,11 @@ const myAssignTasks = async (
           profilePicture: true,
           firstName: true,
           lastName: true,
+        },
+      },
+      coins: {
+        select: {
+          coin: true,
         },
       },
       task: {
@@ -261,6 +295,18 @@ const assignTasksDetails = async (id: string) => {
       id,
     },
     include: {
+      coins: {
+        select: {
+          coin: true,
+        },
+      },
+      user: {
+        select: {
+          profilePicture: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
       task: {
         include: {
           category: true,
@@ -303,7 +349,11 @@ const updateAssignTaskStatus = async (
     throw new AppError(StatusCodes.BAD_REQUEST, "You already cancel this task");
   }
 
-  if (!assignTask.isAccepted) {
+  if (
+    !assignTask.isAccepted &&
+    payload.status !== ASSIGN_TASK_STATUS.CANCELLED &&
+    payload.isAccepted !== true
+  ) {
     throw new AppError(StatusCodes.BAD_REQUEST, "User did not accept this task");
   }
 

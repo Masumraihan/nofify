@@ -1,5 +1,6 @@
 import { USER_ROLE } from "../../enums";
 import prisma from "../../shared/prisma";
+import { TTokenUser } from "../../types/common";
 import { PAYMENT_STATUS } from "../payment/payment.constant";
 
 const getUsersChartData = async (query: Record<string, unknown>) => {
@@ -117,6 +118,61 @@ const getPaymentChartData = async (query: Record<string, unknown>) => {
 
   return monthsPaymentCount;
 };
+const myEarningChartData = async (user: TTokenUser, query: Record<string, unknown>) => {
+  let year = new Date().getFullYear();
+
+  if (query.year) {
+    year = Number(query.year);
+  }
+
+  // Step 1: Group payments by month of the specified year
+  const result = await prisma.coins.groupBy({
+    by: ["createdAt"],
+    where: {
+      createdAt: {
+        gte: new Date(`${year}-01-01T00:00:00.000Z`), // Start of the year
+        lt: new Date(`${year + 1}-01-01T00:00:00.000Z`), // Start of the next year
+      },
+      assignTask: {
+        userId: user.id,
+      },
+    },
+    _sum: {
+      coin: true,
+    },
+  });
+
+  // Step 2: Aggregate data by months
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  // Initialize monthly revenue array
+  const monthsCoinCount = Array.from({ length: 12 }, (_, i) => ({
+    month: monthNames[i],
+    revenue: 0,
+  }));
+
+  // Populate monthly revenue array
+  result.forEach((entry) => {
+    const monthIndex = new Date(entry.createdAt).getMonth(); // Extract month index
+    const revenue = entry._sum.coin || 0; // Get the revenue for the month
+    monthsCoinCount[monthIndex].revenue += revenue;
+  });
+
+  return monthsCoinCount;
+};
 
 const metaCounts = async () => {
   const totalUserCount = await prisma.user.count({
@@ -183,4 +239,5 @@ export const MetaServices = {
   getUsersChartData,
   getPaymentChartData,
   metaCounts,
+  myEarningChartData,
 };

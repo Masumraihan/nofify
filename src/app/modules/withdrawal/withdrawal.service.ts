@@ -2,6 +2,8 @@ import { StatusCodes } from "http-status-codes";
 import AppError from "../../errors/AppError";
 import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
+import { USER_ROLE } from "../../enums";
+import { sendNotification } from "../../shared/sendNotification";
 
 const createWithdrawal = async (user: TTokenUser, payload: { coin: number }) => {
   const userData = await prisma.user.findUniqueOrThrow({
@@ -18,6 +20,19 @@ const createWithdrawal = async (user: TTokenUser, payload: { coin: number }) => 
       coin: payload.coin,
     },
   });
+
+  // SEND A NOTIFICATION IN ADMIN DASHBOARD
+  const admin = await prisma.user.findFirst({ where: { role: USER_ROLE.SUPER_ADMIN } });
+
+  if (admin?.fcmToken) {
+    sendNotification([admin.fcmToken], {
+      title: "New Withdrawal Request",
+      body: `User ${userData.firstName || "Unknown User"} has requested a withdrawal of ${
+        payload.coin
+      } coins.`,
+      userId: admin.id,
+    });
+  }
 
   return withdrawal;
 };
