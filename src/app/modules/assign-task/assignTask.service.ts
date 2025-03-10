@@ -269,6 +269,11 @@ const myAssignTasks = async (
     take: limit,
     orderBy: { [sortBy]: sortOrder },
     include: {
+      coins: {
+        select: {
+          coin: true,
+        },
+      },
       user: {
         select: {
           profilePicture: true,
@@ -276,11 +281,7 @@ const myAssignTasks = async (
           lastName: true,
         },
       },
-      coins: {
-        select: {
-          coin: true,
-        },
-      },
+
       task: {
         include: {
           category: true,

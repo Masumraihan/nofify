@@ -13,7 +13,7 @@ import prisma from "../../shared/prisma";
 import { sendOTP, sendSNSMessage } from "../../shared/sendSNSMessage";
 import { TTokenUser } from "../../types/common";
 import { generateReferCode } from "./auth.utils";
-import { sendTwilioMessage } from "../../shared/sendMessage";
+import { sendMessage, sendTwilioMessage } from "../../shared/sendMessage";
 
 const signUpIntoDb = async (payload: any) => {
   const isUserExist = await prisma.user.findFirst({
@@ -292,10 +292,9 @@ const resendOtp = async (payload: { email?: string; phoneNumber?: string; type?:
 
   if (payload.type === "mobile") {
     //  SEND SMS FOR VERIFICATION
-    //const res = await sendMessage(userData.phoneNumber as string, otp.toString());
-    //console.log(res);
+    const res = await sendMessage(userData.phoneNumber as string, otp.toString());
 
-    console.log(payload);
+    console.log({ payload, res });
 
     //const res = await sendVerificationCode(userData.phoneNumber as string);
   } else {
@@ -532,11 +531,8 @@ const forgetPasswordIntoDb = async (payload: {
     //  Message: `Your OTP from NOFIFY is: ${otp}`,
     //  PhoneNumber: userData.phoneNumber,
     //});
-    const res = await sendTwilioMessage({
-      phoneNumber: userData.phoneNumber,
-      message: `Your OTP from NOFIFY is: ${otp}`,
-    });
-    console.log(res);
+    const res = await sendMessage(userData.phoneNumber, `Your OTP from NOFIFY is: ${otp}`);
+    console.log({ res });
   } else {
     const html = forgetOtpEmail
       .replace(/{{name}}/g, userData.email)

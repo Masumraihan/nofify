@@ -120,6 +120,18 @@ const getCoins = async (
     orderBy: {
       [sortBy]: sortOrder,
     },
+
+    include: {
+      assignTask: {
+        select: {
+          task: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   const total = await prisma.coins.count({

@@ -4,7 +4,7 @@ import { CategoryControllers } from "./category.controller";
 
 const router = Router();
 
-router.get("/categories", auth("USER"), CategoryControllers.getAllCategory);
-router.get("/sub-categories", auth("USER"), CategoryControllers.getAllSubCategory);
+router.get("/categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllCategory);
+router.get("/sub-categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllSubCategory);
 
 export const CategoryRoutes = router;
