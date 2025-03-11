@@ -4,8 +4,7 @@ WORKDIR /app
 
 COPY . .
 
+
 RUN npm install
-
 EXPOSE 2000
-CMD ["npm", "run", "dev"]
-
+CMD ["npm", "run", "dev"] 

@@ -4,6 +4,26 @@ import prisma from "../../shared/prisma";
 import { TPaginationOptions } from "../../types/pagination";
 import { categorySearchableFields } from "./category.constant";
 
+const createCategory = async (data: Prisma.CategoryCreateInput) => {
+  const result = await prisma.category.create({ data });
+  return result;
+};
+
+const createSubCategory = async (data: Prisma.SubCategoryCreateInput) => {
+  const result = await prisma.subCategory.create({ data });
+  return result;
+};
+
+const updateCategory = async (id: string, data: Prisma.CategoryUpdateInput) => {
+  const result = await prisma.category.update({ where: { id }, data });
+  return result;
+};
+
+const updateSubCategory = async (id: string, data: Prisma.SubCategoryUpdateInput) => {
+  const result = await prisma.subCategory.update({ where: { id }, data });
+  return result;
+};
+
 const getAllCategory = async (query: Record<string, unknown>, options: TPaginationOptions) => {
   const AndConditions: Prisma.CategoryWhereInput[] = [];
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
@@ -102,4 +122,27 @@ const getAllSubCategory = async (query: Record<string, unknown>, options: TPagin
   };
 };
 
-export const CategoryService = { getAllCategory, getAllSubCategory };
+const deleteCategory = async (id: string) => {
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const result = await transactionClient.category.delete({ where: { id } });
+    await transactionClient.subCategory.deleteMany({ where: { categoryId: id } });
+    return result;
+  });
+  return result;
+};
+
+const deleteSubCategory = async (id: string) => {
+  const result = await prisma.subCategory.delete({ where: { id } });
+  return result;
+};
+
+export const CategoryService = {
+  createCategory,
+  createSubCategory,
+  updateCategory,
+  updateSubCategory,
+  getAllCategory,
+  getAllSubCategory,
+  deleteCategory,
+  deleteSubCategory,
+};

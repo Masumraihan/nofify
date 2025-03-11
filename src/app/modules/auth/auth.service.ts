@@ -43,8 +43,6 @@ const signUpIntoDb = async (payload: any) => {
       hashedPassword = await bcrypt.hash(payload.password, Number(config.bcrypt_salt_rounds));
     }
 
-    console.log({ code });
-
     const user = await transactionClient.user.create({
       data: {
         ...payload,
