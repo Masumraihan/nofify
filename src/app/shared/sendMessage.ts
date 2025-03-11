@@ -1,10 +1,16 @@
 import Twilio from "twilio/lib/rest/Twilio";
 import config from "../config";
 
-const client = new Twilio(config.message.twilioAccountSID, config.message.twilioAuthToken);
+console.log({
+  twilioAccountSID: config.message?.twilioAccountSID,
+  twilioAuthToken: config.message?.twilioAuthToken,
+});
+
+const client = new Twilio(config.message?.twilioAccountSID, config.message?.twilioAuthToken);
 
 export const sendMessage = async (phoneNumber: string, message: string) => {
   try {
+
     const response = await client.messages.create({
       body: message,
       from: config.message.twilioPhoneNumber, // Your Twilio number

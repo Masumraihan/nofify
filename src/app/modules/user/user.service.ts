@@ -201,8 +201,6 @@ const uploadImage = async (file: Express.Multer.File) => {
   };
 };
 
-
-
 export const UserServices = {
   uploadImage,
   getUsers,

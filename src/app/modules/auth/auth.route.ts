@@ -61,7 +61,6 @@ router.post(
             ),
           )
         : [];
-      console.log({ documents });
       // Parse and validate the request body
       const parsedData = req.body?.data ? JSON.parse(req.body?.data) : req.body;
 
