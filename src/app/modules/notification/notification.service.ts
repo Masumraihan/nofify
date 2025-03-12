@@ -70,9 +70,7 @@ const getNotificationFromDb = async (
 const readNotificationFromDb = async (user: TTokenUser, query: Record<string, unknown> = {}) => {
   query.user = user.id;
   const result = await prisma.notification.updateMany({
-    where: {
-      ...query,
-    },
+    where: { userId: user.id },
     data: {
       isRead: true,
     },

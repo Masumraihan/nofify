@@ -31,10 +31,16 @@ router.patch(
 
       const parsedData = req.body?.data ? JSON.parse(req.body?.data) : req.body;
 
-      req.body = UserValidations.updateProfileValidationSchema.parse({
-        ...parsedData,
-        profilePicture,
-      });
+      if (profilePicture) {
+        req.body = UserValidations.updateProfileValidationSchema.parse({
+          ...parsedData,
+          profilePicture,
+        });
+      } else {
+        req.body = UserValidations.updateProfileValidationSchema.parse({
+          ...parsedData,
+        });
+      }
 
       // Proceed to the next middleware/controller
       next();
