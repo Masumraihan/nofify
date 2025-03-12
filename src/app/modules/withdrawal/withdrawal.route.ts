@@ -14,6 +14,6 @@ router.post(
   WithdrawalController.createWithdrawal,
 );
 
-router.patch("/make-payment/:id", auth("USER"), WithdrawalController.makePayment);
+router.patch("/make-payment/:id", auth("SUPER_ADMIN"), WithdrawalController.makePayment);
 
 export const WithdrawalRoutes = router;

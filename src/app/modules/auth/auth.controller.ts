@@ -249,7 +249,6 @@ const resetPassword = catchAsync(async (req, res) => {
 //});
 
 const googleAuth = catchAsync(async (req, res) => {
-  console.log("object");
   passport.authenticate("google", { scope: ["profile", "email"] });
 });
 

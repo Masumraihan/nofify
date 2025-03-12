@@ -5,7 +5,7 @@ const createWithdrawalValidationSchema = z.object({
     coin: z
       .number({ required_error: "Coin is required" })
       .positive({ message: "Coin must be positive" })
-      .min(50000, {
+      .min(5, {
         message: "Coin  ",
       }),
   }),

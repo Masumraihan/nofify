@@ -14,8 +14,6 @@ const getNotificationFromDb = async (
 
   const { ...filterQuery } = query;
 
-  console.log(filterQuery);
-
   // Add filterQuery conditions
   if (Object.keys(filterQuery).length > 0) {
     andConditions.push({
@@ -39,7 +37,7 @@ const getNotificationFromDb = async (
 
   const whereConditions: Prisma.NotificationWhereInput = {
     AND: andConditions.length ? andConditions : undefined,
-    userId: user._id,
+    userId: user.id,
   };
 
   const result = await prisma.notification.findMany({
@@ -63,13 +61,14 @@ const getNotificationFromDb = async (
       total,
       page,
       limit,
+      totalPage: Math.ceil(total / limit),
     },
     data: result,
   };
 };
 
 const readNotificationFromDb = async (user: TTokenUser, query: Record<string, unknown> = {}) => {
-  query.user = user._id;
+  query.user = user.id;
   const result = await prisma.notification.updateMany({
     where: {
       ...query,
@@ -85,7 +84,7 @@ const deleteNotificationFromDb = async (user: TTokenUser, id: string) => {
   const result = await prisma.notification.deleteMany({
     where: {
       id,
-      userId: user._id,
+      userId: user.id,
     },
   });
   return result;
@@ -94,7 +93,7 @@ const deleteNotificationFromDb = async (user: TTokenUser, id: string) => {
 const deleteAllNotificationFromDb = async (user: TTokenUser) => {
   const result = await prisma.notification.deleteMany({
     where: {
-      userId: user._id,
+      userId: user.id,
     },
   });
   return result;

@@ -32,9 +32,11 @@ const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
     },
   });
 
-  return await prisma.assignTask.create({
+  const result = await prisma.assignTask.create({
     data: { ...payload, isAccepted: (task.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true },
   });
+
+  return result;
 };
 
 const createManyAssignTask = async (

@@ -4,6 +4,9 @@ import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
 import { USER_ROLE } from "../../enums";
 import { sendNotification } from "../../shared/sendNotification";
+import { TPaginationOptions } from "../../types/pagination";
+import { Prisma } from "@prisma/client";
+import { paginationHelper } from "../../helpers/paginationHelper";
 
 const createWithdrawal = async (user: TTokenUser, payload: { coin: number }) => {
   const userData = await prisma.user.findUniqueOrThrow({
@@ -37,16 +40,153 @@ const createWithdrawal = async (user: TTokenUser, payload: { coin: number }) => 
   return withdrawal;
 };
 
-const getWithdrawal = async () => {
-  const withdrawal = await prisma.withdrawal.findMany({});
+const getWithdrawal = async (query: Record<string, unknown>, options: TPaginationOptions) => {
+  const andConditions: Prisma.WithdrawalWhereInput[] = [];
+  const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
+  const { searchTerm, ...filterQuery } = query;
 
-  return withdrawal;
+  if (searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          user: {
+            email: {
+              contains: searchTerm.toString(),
+              mode: "insensitive",
+            },
+            fullName: {
+              contains: searchTerm.toString(),
+              mode: "insensitive",
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  if (Object.keys(filterQuery).length > 0) {
+    andConditions.push({
+      AND: Object.entries(filterQuery).map(([field, value]) => ({
+        [field]: {
+          equals: value,
+        },
+      })),
+    });
+  }
+
+  const whereConditions = andConditions?.length > 0 ? { AND: andConditions } : {};
+
+  const result = await prisma.withdrawal.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          firstName: true,
+          lastName: true,
+          profilePicture: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  const total = await prisma.withdrawal.count({
+    where: whereConditions,
+  });
+
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: result,
+  };
 };
 
-const getMyWithdrawal = async (user: TTokenUser) => {
-  const withdrawal = await prisma.withdrawal.findMany({ where: { userId: user.id } });
+const getMyWithdrawal = async (
+  user: TTokenUser,
+  query: Record<string, unknown>,
+  options: TPaginationOptions,
+) => {
+  const andConditions: Prisma.WithdrawalWhereInput[] = [];
+  const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
+  const { searchTerm, ...filterQuery } = query;
 
-  return withdrawal;
+  if (searchTerm) {
+    andConditions.push({
+      OR: [
+        {
+          user: {
+            email: {
+              contains: searchTerm.toString(),
+              mode: "insensitive",
+            },
+            fullName: {
+              contains: searchTerm.toString(),
+              mode: "insensitive",
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  if (Object.keys(filterQuery).length > 0) {
+    andConditions.push({
+      AND: Object.entries(filterQuery).map(([field, value]) => ({
+        [field]: {
+          equals: value,
+        },
+      })),
+    });
+  }
+
+  const whereConditions =
+    andConditions?.length > 0 ? { AND: andConditions, userId: user.id } : { userId: user.id };
+
+  const result = await prisma.withdrawal.findMany({
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          fullName: true,
+          firstName: true,
+          lastName: true,
+          profilePicture: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  const total = await prisma.withdrawal.count({
+    where: whereConditions,
+  });
+
+  return {
+    meta: {
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: result,
+  };
 };
 
 const makePayment = async (id: string) => {

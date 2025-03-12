@@ -292,7 +292,6 @@ const resendOtp = async (payload: { email?: string; phoneNumber?: string; type?:
     //  SEND SMS FOR VERIFICATION
     const res = await sendMessage(userData.phoneNumber as string, otp.toString());
 
-    console.log({ payload, res });
 
     //const res = await sendVerificationCode(userData.phoneNumber as string);
   } else {
