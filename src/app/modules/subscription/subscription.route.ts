@@ -6,6 +6,7 @@ import auth from "../../middlewares/auth";
 
 const router = Router();
 router.get("/subscriptions", auth("USER"), SubscriptionController.getSubscription);
+router.get("/success", SubscriptionController.success);
 router.post(
   "/create",
   auth("USER"),

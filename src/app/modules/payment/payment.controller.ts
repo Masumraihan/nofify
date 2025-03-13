@@ -56,7 +56,7 @@ const webhook = catchAsync(async (req, res) => {
     if (redirectUrl) {
       res.redirect(`${redirectUrl}?paymentId=${payment_id}`);
     } else {
-      res.redirect(`${config.payment.paymentSuccessUrl}?paymentId=${payment_id}`);
+      res.redirect(`${config.server_url}/api/v1/subscription/success`);
     }
   } else {
     throw new AppError(StatusCodes.BAD_REQUEST, "Failed to Verify Payment");

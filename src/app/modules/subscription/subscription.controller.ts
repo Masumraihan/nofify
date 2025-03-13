@@ -49,9 +49,20 @@ const getSubscription = catchAsync(async (req, res) => {
   });
 });
 
+//* THIS IS FOR APP, WHEN SUBSCRIPTION SUCCESS IS REDIRECT TO THIS ENDPOINT
+const success = catchAsync(async (req, res) => {
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Payment success",
+    data: {},
+  });
+});
+
 export const SubscriptionController = {
   createSubscription,
   updateSubscription,
   cancelSubscription,
   getSubscription,
+  success,
 };
