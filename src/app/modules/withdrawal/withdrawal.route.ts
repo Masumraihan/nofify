@@ -13,6 +13,7 @@ router.post(
   validateRequest(WithdrawalValidations.createWithdrawalValidationSchema),
   WithdrawalController.createWithdrawal,
 );
+router.patch("/:id", auth("USER"), WithdrawalController.updateWithdrawal);
 
 router.patch("/make-payment/:id", auth("SUPER_ADMIN"), WithdrawalController.makePayment);
 

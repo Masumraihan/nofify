@@ -182,13 +182,14 @@ model Coins {
 }
 
 model Withdrawal {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  isPaid    Boolean  @default(false)
-  coin      Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  isPaid        Boolean  @default(false)
+  coin          Int
+  walletAddress String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("withdrawals")
 }

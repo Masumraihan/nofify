@@ -1,14 +1,17 @@
-import { StatusCodes } from "http-status-codes";
-import AppError from "../../errors/AppError";
-import prisma from "../../shared/prisma";
-import { TTokenUser } from "../../types/common";
-import { USER_ROLE } from "../../enums";
-import { sendNotification } from "../../shared/sendNotification";
-import { TPaginationOptions } from "../../types/pagination";
 import { Prisma } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
+import { USER_ROLE } from "../../enums";
+import AppError from "../../errors/AppError";
 import { paginationHelper } from "../../helpers/paginationHelper";
+import prisma from "../../shared/prisma";
+import { sendNotification } from "../../shared/sendNotification";
+import { TTokenUser } from "../../types/common";
+import { TPaginationOptions } from "../../types/pagination";
 
-const createWithdrawal = async (user: TTokenUser, payload: { coin: number }) => {
+const createWithdrawal = async (
+  user: TTokenUser,
+  payload: { coin: number; walletAddress: string },
+) => {
   const userData = await prisma.user.findUniqueOrThrow({
     where: { email: user.email, id: user.id },
   });
@@ -21,6 +24,7 @@ const createWithdrawal = async (user: TTokenUser, payload: { coin: number }) => 
     data: {
       userId: userData.id,
       coin: payload.coin,
+      walletAddress: payload.walletAddress,
     },
   });
 
@@ -189,9 +193,49 @@ const getMyWithdrawal = async (
   };
 };
 
-const makePayment = async (id: string) => {
-  const result = await prisma.withdrawal.update({ where: { id }, data: { isPaid: true } });
+const updateWithdrawal = async (
+  user: TTokenUser,
+  id: string,
+  payload: Prisma.WithdrawalUpdateInput,
+) => {
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const result = await transactionClient.withdrawal.update({
+      where: { id, userId: user.id },
+      data: payload,
+    });
+
+    return result;
+  });
   return result;
 };
 
-export const WithdrawalService = { createWithdrawal, getWithdrawal, getMyWithdrawal, makePayment };
+const makePayment = async (id: string) => {
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const result = await transactionClient.withdrawal.update({
+      where: { id },
+      data: { isPaid: true },
+    });
+
+    await transactionClient.user.update({
+      where: {
+        id: result.userId,
+      },
+      data: {
+        totalCoins: {
+          decrement: result.coin,
+        },
+      },
+    });
+
+    return result;
+  });
+  return result;
+};
+
+export const WithdrawalService = {
+  createWithdrawal,
+  getWithdrawal,
+  getMyWithdrawal,
+  makePayment,
+  updateWithdrawal,
+};
