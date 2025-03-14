@@ -15,8 +15,12 @@ const getSettings = async (label: string) => {
   return result;
 };
 
-const updateSettings = async (payload: Partial<Settings>) => {
-  const result = await prisma.settings.update({ where: { label: payload.label }, data: payload });
+const updateSettings = async (payload: Settings) => {
+  const result = await prisma.settings.upsert({
+    where: { label: payload.label },
+    update: payload,
+    create: payload,
+  });
   return result;
 };
 

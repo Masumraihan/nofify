@@ -13,7 +13,7 @@ import prisma from "../../shared/prisma";
 import { sendOTP, sendSNSMessage } from "../../shared/sendSNSMessage";
 import { TTokenUser } from "../../types/common";
 import { generateReferCode } from "./auth.utils";
-import { sendTwilioMessage } from "../../shared/sendMessage";
+import { sendMessage, sendTwilioMessage } from "../../shared/sendMessage";
 
 const signUpIntoDb = async (payload: any) => {
   const isUserExist = await prisma.user.findFirst({
@@ -42,8 +42,6 @@ const signUpIntoDb = async (payload: any) => {
     if (payload.password) {
       hashedPassword = await bcrypt.hash(payload.password, Number(config.bcrypt_salt_rounds));
     }
-
-    console.log({ code });
 
     const user = await transactionClient.user.create({
       data: {
@@ -292,10 +290,7 @@ const resendOtp = async (payload: { email?: string; phoneNumber?: string; type?:
 
   if (payload.type === "mobile") {
     //  SEND SMS FOR VERIFICATION
-    //const res = await sendMessage(userData.phoneNumber as string, otp.toString());
-    //console.log(res);
-
-    console.log(payload);
+    const res = await sendMessage(userData.phoneNumber as string, otp.toString());
 
     //const res = await sendVerificationCode(userData.phoneNumber as string);
   } else {
@@ -532,11 +527,8 @@ const forgetPasswordIntoDb = async (payload: {
     //  Message: `Your OTP from NOFIFY is: ${otp}`,
     //  PhoneNumber: userData.phoneNumber,
     //});
-    const res = await sendTwilioMessage({
-      phoneNumber: userData.phoneNumber,
-      message: `Your OTP from NOFIFY is: ${otp}`,
-    });
-    console.log(res);
+    const res = await sendMessage(userData.phoneNumber, `Your OTP from NOFIFY is: ${otp}`);
+    console.log({ res });
   } else {
     const html = forgetOtpEmail
       .replace(/{{name}}/g, userData.email)
@@ -549,8 +541,17 @@ const forgetPasswordIntoDb = async (payload: {
   };
 };
 
-const resetPassword = async (token: string, payload: { password: string }) => {
-  const decode = verifyToken(token, config.jwt.jwtVerifyAccountSecret as Secret) as TTokenUser;
+const resetPassword = async (
+  token: string,
+  payload: { password: string },
+  token_type: string | null,
+) => {
+  const decode = verifyToken(
+    token,
+    token_type === "access_token"
+      ? (config.jwt.jwtAccessTokenSecret as Secret)
+      : (config.jwt.jwtVerifyAccountSecret as Secret),
+  ) as TTokenUser;
   const userData = await prisma.user.findUniqueOrThrow({
     where: { email: decode.email, id: decode.id, isDelete: false },
   });

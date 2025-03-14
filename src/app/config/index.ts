@@ -7,6 +7,7 @@ export default {
   ip: process.env.IP,
   nodeEnv: process.env.NODE_ENV,
   bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
+  server_url: process.env.SERVER_URL,
   db: {
     url: process.env.DATABASE_URL,
   },

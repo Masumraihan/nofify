@@ -3,6 +3,8 @@ import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
+import { USER_ROLE } from "../../enums";
+import { sendNotification } from "../../shared/sendNotification";
 
 const getNotificationFromDb = async (
   user: TTokenUser,
@@ -13,8 +15,6 @@ const getNotificationFromDb = async (
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
 
   const { ...filterQuery } = query;
-
-  console.log(filterQuery);
 
   // Add filterQuery conditions
   if (Object.keys(filterQuery).length > 0) {
@@ -39,7 +39,7 @@ const getNotificationFromDb = async (
 
   const whereConditions: Prisma.NotificationWhereInput = {
     AND: andConditions.length ? andConditions : undefined,
-    userId: user._id,
+    userId: user.id,
   };
 
   const result = await prisma.notification.findMany({
@@ -63,17 +63,16 @@ const getNotificationFromDb = async (
       total,
       page,
       limit,
+      totalPage: Math.ceil(total / limit),
     },
     data: result,
   };
 };
 
 const readNotificationFromDb = async (user: TTokenUser, query: Record<string, unknown> = {}) => {
-  query.user = user._id;
+  query.user = user.id;
   const result = await prisma.notification.updateMany({
-    where: {
-      ...query,
-    },
+    where: { userId: user.id },
     data: {
       isRead: true,
     },
@@ -85,7 +84,7 @@ const deleteNotificationFromDb = async (user: TTokenUser, id: string) => {
   const result = await prisma.notification.deleteMany({
     where: {
       id,
-      userId: user._id,
+      userId: user.id,
     },
   });
   return result;
@@ -94,10 +93,21 @@ const deleteNotificationFromDb = async (user: TTokenUser, id: string) => {
 const deleteAllNotificationFromDb = async (user: TTokenUser) => {
   const result = await prisma.notification.deleteMany({
     where: {
-      userId: user._id,
+      userId: user.id,
     },
   });
   return result;
+};
+// how does it 
+const createDummyNotification = async (user: TTokenUser) => {
+  const admin = await prisma.user.findFirst({ where: { id: user.id } });
+  if (admin?.fcmToken) {
+    await sendNotification([admin?.fcmToken], {
+      title: "Dummy notification for testing",
+      body: `Dummy notification for testing`,
+      userId: admin.id,
+    });
+  }
 };
 
 export const NotificationServices = {
@@ -105,4 +115,5 @@ export const NotificationServices = {
   readNotificationFromDb,
   deleteNotificationFromDb,
   deleteAllNotificationFromDb,
+  createDummyNotification,
 };

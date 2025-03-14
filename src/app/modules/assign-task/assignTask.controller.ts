@@ -69,7 +69,6 @@ const createManyAssignTask = catchAsync(async (req, res) => {
 
 const updateAssignTask = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
-  console.log(req.body);
   const result = await AssignTaskServices.updateAssignTask(user, req.params.id, req.body);
   sendResponse(res, {
     statusCode: StatusCodes.OK,

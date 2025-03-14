@@ -32,7 +32,6 @@ router.post(
     try {
       // Type assertion to ensure the structure of req.files
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      console.log({ files });
       // Upload profile picture if available
       const profilePicture = files?.["profilePicture"]
         ? await uploadToS3({
@@ -51,7 +50,7 @@ router.post(
                 const key = `nofify/docments/${Math.floor(
                   100000 + Math.random() * 900000 + new Date().getTime(),
                 )}`;
-                console.log(key);
+             
                 return {
                   file,
                   key,
@@ -61,7 +60,6 @@ router.post(
             ),
           )
         : [];
-      console.log({ documents });
       // Parse and validate the request body
       const parsedData = req.body?.data ? JSON.parse(req.body?.data) : req.body;
 

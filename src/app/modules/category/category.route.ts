@@ -4,7 +4,20 @@ import { CategoryControllers } from "./category.controller";
 
 const router = Router();
 
-router.get("/categories", auth("USER"), CategoryControllers.getAllCategory);
-router.get("/sub-categories", auth("USER"), CategoryControllers.getAllSubCategory);
-
+router.get("/categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllCategory);
+router.get("/sub-categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllSubCategory);
+router.post("/create", auth("SUPER_ADMIN"), CategoryControllers.createCategory);
+router.post("/create-sub-category", auth("SUPER_ADMIN"), CategoryControllers.createSubCategory);
+router.patch("/update/:id", auth("SUPER_ADMIN"), CategoryControllers.updateCategory);
+router.patch(
+  "/update-sub-category/:id",
+  auth("SUPER_ADMIN"),
+  CategoryControllers.updateSubCategory,
+);
+router.delete("/delete/:id", auth("SUPER_ADMIN"), CategoryControllers.deleteCategory);
+router.delete(
+  "/delete-sub-category/:id",
+  auth("SUPER_ADMIN"),
+  CategoryControllers.deleteSubCategory,
+);
 export const CategoryRoutes = router;

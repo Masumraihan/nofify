@@ -6,6 +6,7 @@ import { UserControllers } from "./user.controller";
 import { UserValidations } from "./user.validation";
 import { uploadToS3 } from "../../constant/s3";
 import { createId } from "@paralleldrive/cuid2";
+
 const storage = memoryStorage();
 const upload = multer({ storage });
 const router = express.Router();
@@ -14,13 +15,6 @@ router.get("/users", auth("SUPER_ADMIN", "USER"), UserControllers.getUsers);
 router.get("/profile", auth("SUPER_ADMIN", "USER"), UserControllers.getMyProfile);
 router.get("/:id", auth("SUPER_ADMIN"), UserControllers.getUser);
 
-router.patch(
-  "/user/:id",
-  auth("SUPER_ADMIN"),
-  validateRequest(UserValidations.userSchema.partial()),
-  UserControllers.updateUser,
-);
-router.delete("/user/:id", auth("SUPER_ADMIN"), UserControllers.deleteUser);
 router.patch(
   "/profile",
   auth("SUPER_ADMIN", "USER"),
@@ -37,14 +31,18 @@ router.patch(
         });
       }
 
-      // Check if there's any data in req.body and validate
       const parsedData = req.body?.data ? JSON.parse(req.body?.data) : req.body;
 
-      // Validate the body data, including the profile picture if it's present
-      req.body = UserValidations.updateProfileValidationSchema.parse({
-        ...parsedData,
-        profilePicture,
-      });
+      if (profilePicture) {
+        req.body = UserValidations.updateProfileValidationSchema.parse({
+          ...parsedData,
+          profilePicture,
+        });
+      } else {
+        req.body = UserValidations.updateProfileValidationSchema.parse({
+          ...parsedData,
+        });
+      }
 
       // Proceed to the next middleware/controller
       next();
@@ -54,6 +52,15 @@ router.patch(
   },
   UserControllers.updateMyProfile,
 );
+
+router.patch(
+  "/:id",
+  auth("SUPER_ADMIN"),
+  validateRequest(UserValidations.userSchema.partial()),
+  UserControllers.updateUser,
+);
+
+router.delete("/user/:id", auth("SUPER_ADMIN"), UserControllers.deleteUser);
 
 router.delete("/profile", auth("SUPER_ADMIN", "USER"), UserControllers.deleteMyProfile);
 

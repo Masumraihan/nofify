@@ -8,6 +8,7 @@ import AppError from "../../errors/AppError";
 import { StatusCodes } from "http-status-codes";
 import { taskSearchableFields } from "./task.constant";
 import { deleteManyFromS3 } from "../../constant/s3";
+import { sendNotification } from "../../shared/sendNotification";
 
 const createTask = async (
   user: TTokenUser,
@@ -78,7 +79,6 @@ const createTask = async (
     const taskData = await transactionClient.task.create({
       data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
     });
-    console.log({ documents });
     if (documents?.length) {
       await transactionClient.file.createMany({
         data: documents.map((file) => ({
@@ -90,12 +90,30 @@ const createTask = async (
       });
     }
     if (userIds?.length) {
-      await transactionClient.assignTask.createMany({
-        data: userIds.map((id) => ({
-          taskId: taskData.id,
-          userId: id,
-        })),
-      });
+      await Promise.all(
+        userIds.map(async (id: string) => {
+          await transactionClient.assignTask.create({
+            data: {
+              taskId: taskData.id,
+              userId: id,
+            },
+          });
+
+          const assignUser = await transactionClient.user.findFirst({
+            where: {
+              id,
+            },
+          });
+
+          if (assignUser?.fcmToken) {
+            sendNotification([assignUser?.fcmToken], {
+              title: "New Task Assigned",
+              body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
+              userId: assignUser.id,
+            });
+          }
+        }),
+      );
     } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
       await transactionClient.assignTask.create({
         data: {

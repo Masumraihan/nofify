@@ -2,6 +2,9 @@ import { StatusCodes } from "http-status-codes";
 import catchAsync from "../../shared/catchAsync";
 import sendResponse from "../../shared/sendResponse";
 import { PackageServices } from "./package.service";
+import { packageFilterableFields } from "./package.constant";
+import pick from "../../shared/pick";
+import { PaginationOption } from "../../../constant/common";
 
 const createPackage = catchAsync(async (req, res) => {
   const result = await PackageServices.createPackage(req.body);
@@ -24,7 +27,9 @@ const updatePackage = catchAsync(async (req, res) => {
 });
 
 const getPackages = catchAsync(async (req, res) => {
-  const result = await PackageServices.getPackages();
+  const query = pick(req.query, packageFilterableFields);
+  const options = pick(req.query, PaginationOption);
+  const result = await PackageServices.getPackages(query, options);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -43,20 +48,20 @@ const deletePackage = catchAsync(async (req, res) => {
   });
 });
 
-const getPackage = catchAsync(async (req, res) => {
-  const result = await PackageServices.getPackages();
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: "Package fetched successfully",
-    data: result,
-  });
-});
+//const getPackage = catchAsync(async (req, res) => {
+//  const result = await PackageServices.getPackage(req.params.id);
+//  sendResponse(res, {
+//    statusCode: StatusCodes.OK,
+//    success: true,
+//    message: "Package fetched successfully",
+//    data: result,
+//  });
+//});
 
 export const PackageController = {
   createPackage,
   updatePackage,
   getPackages,
   deletePackage,
-  getPackage,
+  //getPackage,
 };

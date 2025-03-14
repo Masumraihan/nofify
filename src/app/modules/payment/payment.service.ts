@@ -6,7 +6,8 @@ import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
 import { TPaginationOptions } from "../../types/pagination";
 import { StripeServices } from "../stripe/stripe.service";
-import { PAYMENT_STATUS } from "./payment.constant";
+import { PAYMENT_STATUS, paymentSearchableFields } from "./payment.constant";
+import { Prisma } from "@prisma/client";
 
 const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string) => {
   const stripePaymentData = await StripeServices.verifyPayment(sessionId);
@@ -52,6 +53,7 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
       data: {
         status: PAYMENT_STATUS.PAID,
         paymentData: JSON.stringify(stripePaymentData),
+        stripeTransactionId: stripePaymentData.id,
       },
       include: {
         user: true,
@@ -179,12 +181,52 @@ const getPaymentFromDb = async (userId: string) => {
   return paymentData;
 };
 
-const recentTransactions = async (options: TPaginationOptions) => {
+const recentTransactions = async (query: Record<string, unknown>, options: TPaginationOptions) => {
+  const AndConditions: Prisma.PaymentWhereInput[] = [];
+
+  const { searchTerm, ...filterQuery } = query;
+
+  // Add search term condition
+  if (searchTerm) {
+    AndConditions.push({
+      OR: [
+        ...paymentSearchableFields.map((field) => ({
+          [field]: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        })),
+        {
+          user: {
+            is: {
+              OR: [
+                { firstName: { contains: searchTerm, mode: "insensitive" } },
+                { lastName: { contains: searchTerm, mode: "insensitive" } },
+                { email: { contains: searchTerm, mode: "insensitive" } },
+              ],
+            },
+          } as Prisma.UserWhereInput,
+        },
+      ],
+    });
+  }
+
+  // Add filterQuery conditions
+  if (Object.keys(filterQuery).length > 0) {
+    AndConditions.push({
+      AND: Object.entries(filterQuery).map(([key, value]) => ({
+        [key]: { equals: value },
+      })),
+    });
+  }
+
+  const whereConditions: Prisma.PaymentWhereInput =
+    AndConditions.length > 0 ? { AND: AndConditions } : {};
+
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
+
   const result = await prisma.payment.findMany({
-    where: {
-      status: PAYMENT_STATUS.PAID,
-    },
+    where: whereConditions,
     include: {
       user: {
         select: {
@@ -196,7 +238,11 @@ const recentTransactions = async (options: TPaginationOptions) => {
           role: true,
         },
       },
-      subscription: true,
+      subscription: {
+        include: {
+          package: true,
+        },
+      },
     },
     skip,
     take: limit,

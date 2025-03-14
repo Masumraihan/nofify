@@ -22,17 +22,21 @@ const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
 
+const corsOrigins = [
+  "http://localhost:5012",
+  "http://192.168.10.188:5012",
+  "http://192.168.10.188:5012",
+  "http://localhost",
+  "http://127.0.0.1",
+  "http://192.168.10.133:3000",
+  "http://localhost:5011",
+  "http://192.168.10.43:5011",
+];
+
 // PARSERS
 app.use(
   cors({
-    origin: [
-      "http://localhost:5012",
-      "http://192.168.10.188:5012",
-      "http://192.168.10.188:5012",
-      "http://localhost",
-      "http://127.0.0.1",
-      "http://192.168.10.133:3000",
-    ],
+    origin: corsOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   }),

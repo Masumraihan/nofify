@@ -1,0 +1,20 @@
+{
+  "name": "nofify-container",
+  "image": "node:22",
+  "workspaceFolder": "/app",
+  "mounts": [
+    // Bind mount for your local project
+    "source=/d/Projects/Ongoing/Prisma/task-management,target=/app,type=bind",
+
+    // Anonymous volume for node_modules (similar to: -v //app/node_modules)
+    "target=/app/node_modules,type=volume"
+  ],
+  "runArgs": [
+    "--name",
+    "nofify-container",
+    "-p",
+    "2000:2000",
+    "--rm" // Automatically remove the container after exiting VS Code
+  ],
+  "postCreateCommand": "npm install"
+}

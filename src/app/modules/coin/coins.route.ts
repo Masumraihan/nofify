@@ -13,6 +13,11 @@ router.post(
   validateRequest(CoinValidations.sendCoinsSchema),
   CoinController.sendCoins,
 );
-router.post("/redeem", auth("USER"), CoinController.redeemCoins);
+router.post(
+  "/redeem",
+  auth("USER"),
+  validateRequest(CoinValidations.redeemCoinsSchema),
+  CoinController.redeemCoins,
+);
 
 export const CoinsRoutes = router;

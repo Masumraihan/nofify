@@ -207,12 +207,14 @@ const forgetPassword = catchAsync(async (req, res) => {
 
 const resetPassword = catchAsync(async (req, res) => {
   const token = req.headers.token as string;
+    const token_type = req.headers.token_type as string;
   if (!token) {
     throw new AppError(StatusCodes.UNAUTHORIZED, "Please provide your token");
   }
   const { accessToken, refreshToken, role, id } = await AuthServices.resetPassword(
     token as string,
     req.body,
+    token_type,
   );
 
   res.cookie("refreshToken", refreshToken, {
@@ -247,7 +249,6 @@ const resetPassword = catchAsync(async (req, res) => {
 //});
 
 const googleAuth = catchAsync(async (req, res) => {
-  console.log("object");
   passport.authenticate("google", { scope: ["profile", "email"] });
 });
 

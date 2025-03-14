@@ -6,5 +6,10 @@ const sendCoinsSchema = z.object({
     coin: z.number({ required_error: "Coin is required" }),
   }),
 });
+const redeemCoinsSchema = z.object({
+  body: z.object({
+    coinsId: z.string({ required_error: "Coin ID is required" }),
+  }),
+});
 
-export const CoinValidations = { sendCoinsSchema };
+export const CoinValidations = { sendCoinsSchema, redeemCoinsSchema };

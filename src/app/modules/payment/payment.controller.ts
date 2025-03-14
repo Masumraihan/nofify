@@ -6,6 +6,7 @@ import sendResponse from "../../shared/sendResponse";
 import { PaymentServices } from "./payment.service";
 import { PaginationOption } from "../../../constant/common";
 import pick from "../../shared/pick";
+import { paymentFilterableFields, paymentSearchableFields } from "./payment.constant";
 
 //const createPayment = catchAsync(async (req, res) => {
 //  const result = await PaymentServices.createPaymentIntoDb(req.body);
@@ -19,7 +20,8 @@ import pick from "../../shared/pick";
 
 const recentTransactions = catchAsync(async (req, res) => {
   const options = pick(req.query, PaginationOption);
-  const result = await PaymentServices.recentTransactions(options);
+  const query = pick(req.query, paymentFilterableFields);
+  const result = await PaymentServices.recentTransactions(query, options);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -54,7 +56,7 @@ const webhook = catchAsync(async (req, res) => {
     if (redirectUrl) {
       res.redirect(`${redirectUrl}?paymentId=${payment_id}`);
     } else {
-      res.redirect(`${config.payment.paymentSuccessUrl}?paymentId=${payment_id}`);
+      res.redirect(`${config.server_url}/api/v1/subscription/success`);
     }
   } else {
     throw new AppError(StatusCodes.BAD_REQUEST, "Failed to Verify Payment");

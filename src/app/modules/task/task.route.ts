@@ -20,6 +20,7 @@ router.post(
     try {
       const files = req.files as Express.Multer.File[];
       const data = req.body.data;
+      
 
       if (files.length) {
         const payload = files.map((file: Express.Multer.File) => {
@@ -47,7 +48,6 @@ router.post(
         }
       } else {
         if (data) {
-          console.log(JSON.parse(data), "data");
           const taskData = TaskValidation.createTaskValidationSchema.parse({
             ...JSON.parse(data),
           });
@@ -94,7 +94,6 @@ router.patch(
 
       next();
     } catch (error) {
-      console.error("Error in task update handler:", error);
       next(error);
     }
   },

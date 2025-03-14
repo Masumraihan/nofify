@@ -7,6 +7,7 @@ import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
 import { PAYMENT_STATUS } from "../payment/payment.constant";
 import { StripeServices } from "../stripe/stripe.service";
+import generateCryptoString from "../../shared/generateRandomString";
 
 const createSubscription = async (user: TTokenUser, payload: { packageId: string }) => {
   const packageData = await prisma.package.findFirstOrThrow({
@@ -23,7 +24,7 @@ const createSubscription = async (user: TTokenUser, payload: { packageId: string
   //});
 
   const result = await prisma.$transaction(async (transactionClient: Prisma.TransactionClient) => {
-    const transactionId = `${new Date().getTime()}_${createId()}`;
+    const transactionId = generateCryptoString(6);
     const subscription = await transactionClient.subscription.create({
       data: {
         userId: user.id,
@@ -31,7 +32,7 @@ const createSubscription = async (user: TTokenUser, payload: { packageId: string
         transactionId,
       },
     });
-    
+
     const payment = await transactionClient.payment.create({
       data: {
         amount: packageData.price,

@@ -7,6 +7,7 @@ import { coinsFilterableFields } from "./coins.constant";
 import AppError from "../../errors/AppError";
 import { StatusCodes } from "http-status-codes";
 import { ASSIGN_TASK_STATUS } from "../assign-task/assignTask.constant";
+import { sendNotification } from "../../shared/sendNotification";
 
 const sendCoins = async (user: TTokenUser, payload: Coins) => {
   const assignedTask = await prisma.assignTask.findFirst({
@@ -41,6 +42,22 @@ const sendCoins = async (user: TTokenUser, payload: Coins) => {
         },
       },
     });
+
+    //AFTER SEND COIN NOTIFY USER
+    const userData = await prisma.user.findUniqueOrThrow({
+      where: { id: assignedTask.userId },
+      select: { fcmToken: true, id: true },
+    });
+
+    if (userData.fcmToken) {
+      sendNotification([userData.fcmToken], {
+        title: "New Coin Received",
+        body: `You have received ${result.coin} coins from ${user.firstName || "Unknown"} ${
+          user.lastName || "User"
+        }.`,
+        userId: userData.id,
+      });
+    }
 
     return result;
   });
@@ -102,6 +119,18 @@ const getCoins = async (
     take: limit,
     orderBy: {
       [sortBy]: sortOrder,
+    },
+
+    include: {
+      assignTask: {
+        select: {
+          task: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      },
     },
   });
 

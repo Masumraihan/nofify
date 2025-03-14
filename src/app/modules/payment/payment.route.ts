@@ -11,7 +11,9 @@ router.get(
 );
 router.get("/get-payment/:userId", auth("SUPER_ADMIN", "USER"), PaymentController.getPayment);
 
+
 router.get("/:id", auth("SUPER_ADMIN"), PaymentController.singleTransaction);
+
 
 //router.post(
 //  "/create-payment-link",
