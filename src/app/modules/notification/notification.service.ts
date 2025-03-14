@@ -3,6 +3,8 @@ import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
 import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
+import { USER_ROLE } from "../../enums";
+import { sendNotification } from "../../shared/sendNotification";
 
 const getNotificationFromDb = async (
   user: TTokenUser,
@@ -96,10 +98,22 @@ const deleteAllNotificationFromDb = async (user: TTokenUser) => {
   });
   return result;
 };
+// how does it 
+const createDummyNotification = async (user: TTokenUser) => {
+  const admin = await prisma.user.findFirst({ where: { id: user.id } });
+  if (admin?.fcmToken) {
+    await sendNotification([admin?.fcmToken], {
+      title: "Dummy notification for testing",
+      body: `Dummy notification for testing`,
+      userId: admin.id,
+    });
+  }
+};
 
 export const NotificationServices = {
   getNotificationFromDb,
   readNotificationFromDb,
   deleteNotificationFromDb,
   deleteAllNotificationFromDb,
+  createDummyNotification,
 };

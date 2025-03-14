@@ -53,9 +53,21 @@ const deleteAllNotification = catchAsync(async (req, res) => {
   });
 });
 
+const createDummyNotification = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await NotificationServices.createDummyNotification(user);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Notification created successfully",
+    data: result,
+  });
+})
+
 export const NotificationControllers = {
   getNotification,
   readNotification,
   deleteNotification,
   deleteAllNotification,
+  createDummyNotification,
 };

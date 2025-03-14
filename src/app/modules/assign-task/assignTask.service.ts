@@ -71,7 +71,6 @@ const createManyAssignTask = async (
   });
 
   //SEND EACH USER A NOTIFICATION
-
   const users = await prisma.user.findMany({ where: { id: { in: payload.userIds } } });
 
   users.forEach(async (user) => {
@@ -95,17 +94,40 @@ const myTasks = async (
   const andConditions: Prisma.AssignTaskWhereInput[] = [];
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
   const { searchTerm, ...filterQuery } = query;
-
   if (searchTerm) {
     andConditions.push({
-      task: {
-        OR: taskSearchableFields.map((field) => ({
-          [field]: {
-            contains: searchTerm,
-            mode: "insensitive",
+      OR: [
+        {
+          task: {
+            OR: [
+              ...taskSearchableFields.map((field) => ({
+                [field]: {
+                  contains: searchTerm,
+                  mode: "insensitive",
+                },
+              })),
+              {
+                user: {
+                  firstName: {
+                    contains: searchTerm,
+                    mode: "insensitive",
+                  },
+                } as Prisma.UserWhereInput,
+              },
+            ],
           },
-        })),
-      },
+        },
+        {
+          user: {
+            OR: ["firstName", "lastName", "email"].map((field) => ({
+              [field]: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            })),
+          },
+        },
+      ],
     });
   }
 
@@ -206,14 +228,38 @@ const myAssignTasks = async (
 
   if (searchTerm) {
     andConditions.push({
-      task: {
-        OR: taskSearchableFields.map((field) => ({
-          [field]: {
-            contains: searchTerm,
-            mode: "insensitive",
+      OR: [
+        {
+          task: {
+            OR: [
+              ...taskSearchableFields.map((field) => ({
+                [field]: {
+                  contains: searchTerm,
+                  mode: "insensitive",
+                },
+              })),
+              {
+                user: {
+                  firstName: {
+                    contains: searchTerm,
+                    mode: "insensitive",
+                  },
+                } as Prisma.UserWhereInput,
+              },
+            ],
           },
-        })),
-      },
+        },
+        {
+          user: {
+            OR: ["firstName", "lastName", "email"].map((field) => ({
+              [field]: {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
+            })),
+          },
+        },
+      ],
     });
   }
 

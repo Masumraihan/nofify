@@ -87,7 +87,7 @@ const optValidation = z.object({
     })
     .strict(),
 });
-
+  
 const resendOtpValidation = z.object({
   body: z
     .object({
