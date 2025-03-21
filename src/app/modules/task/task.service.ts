@@ -1,14 +1,13 @@
 import { File, Prisma, Task } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
+import { deleteManyFromS3 } from "../../constant/s3";
+import AppError from "../../errors/AppError";
+import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
-import { paginationHelper } from "../../helpers/paginationHelper";
 import { TASK_ASSIGNED_TO } from "../assign-task/task.constant";
-import AppError from "../../errors/AppError";
-import { StatusCodes } from "http-status-codes";
 import { taskSearchableFields } from "./task.constant";
-import { deleteManyFromS3 } from "../../constant/s3";
-import { sendNotification } from "../../shared/sendNotification";
 
 const createTask = async (
   user: TTokenUser,
@@ -349,6 +348,7 @@ const updateTask = async (
           },
         },
       });
+
       const deleteDocumentKeys = deletedDocuments.map((doc) => `nofify/document/${doc.key}`);
       const res = await deleteManyFromS3(deleteDocumentKeys);
       if (res.$metadata.httpStatusCode === 200) {
@@ -366,10 +366,42 @@ const updateTask = async (
 };
 
 const deleteTask = async (user: TTokenUser, id: string) => {
-  return await prisma.task.deleteMany({ where: { id, userId: user.id } });
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const deleteAllAddTasks = await transactionClient.addTasks.deleteMany({
+      where: {
+        taskId: id,
+      },
+    });
+
+    const deleteAllAssignTasks = await transactionClient.assignTask.deleteMany({
+      where: {
+        taskId: id,
+      },
+    });
+
+    const result = await transactionClient.task.delete({ where: { id, userId: user.id } });
+
+    const documents = await transactionClient.file.findMany({
+      where: {
+        taskId: id,
+      },
+    });
+
+    const deleteDocumentKeys = documents.map((doc) => `nofify/document/${doc.key}`);
+    if (deleteDocumentKeys.length > 0) {
+      const res = await deleteManyFromS3(deleteDocumentKeys);
+      if (res.$metadata.httpStatusCode === 200) {
+        await transactionClient.file.deleteMany({
+          where: {
+            taskId: id,
+          },
+        });
+      }
+    }
+
+    return result;
+  });
 };
-
-
 
 export const TaskServices = {
   createTask,

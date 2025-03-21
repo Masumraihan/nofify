@@ -1,63 +1,73 @@
-import { User } from "@prisma/client";
-import schedule, { Job } from "node-schedule";
-
-// Assuming you have an existing function to send notifications
-function sendNotification(message: string): void {
-  console.log(`[${new Date().toISOString()}] Notification: ${message}`);
-  // Implement actual notification-sending logic here
-}
+import { Job } from "node-schedule";
+import schedule from "node-schedule";
+import { sendNotification } from "./sendNotification";
+import AppError from "../errors/AppError";
+import { StatusCodes } from "http-status-codes";
 
 // Map to track active jobs
-const activeJobs: Map<string, Job[]> = new Map();
+const activeJobs: Map<string, { job?: Job; interval?: NodeJS.Timeout }> = new Map();
 
 /**
  * Schedules a notification at a specified datetime and continues sending
- * notifications at regular intervals in UTC time.
+ * notifications at regular intervals.
  *
  * @param targetDateTimeUTC - The initial datetime (must be in UTC)
- * @param reminderIntervalHours - Interval in hours for recurring notifications
+ * @param reminderIntervalSeconds - Interval in seconds for recurring notifications
  * @returns A unique identifier for stopping the scheduled notifications
  */
 export function scheduleNotifications(
   targetDateTimeUTC: Date,
-  reminderIntervalHours: number,
+  reminderIntervalSeconds: number,
   payload: {
     message: string;
     recurringMessage?: string;
     userId: string;
+    fcmToken: string;
   },
 ): string {
-  const now = new Date();
-  if (targetDateTimeUTC < now) {
-    console.error("Target datetime is in the past. Notification not scheduled.");
-    return "";
+  try {
+    const now = new Date();
+    if (targetDateTimeUTC < now) {
+      console.error("Target datetime is in the past. Notification not scheduled.");
+      return "";
+    }
+
+    console.log(`Scheduling notification for user ${payload.userId}`);
+
+    const scheduleId = `${new Date().getTime()}-${reminderIntervalSeconds}`;
+    let interval: NodeJS.Timeout | undefined;
+
+    // Schedule the initial notification
+    const initialJob = schedule.scheduleJob(targetDateTimeUTC, () => {
+      sendNotification([payload.fcmToken], {
+        title: "Reminder from Nofify," + scheduleId,
+        body: payload.message,
+        userId: payload.userId,
+      });
+
+      // Start recurring notifications only after the first one is sent
+      interval = setInterval(() => {
+        console.log(reminderIntervalSeconds);
+        sendNotification([payload.fcmToken], {
+          title: "Reminder from Nofify," + scheduleId,
+          body: payload.recurringMessage || payload.message,
+          userId: payload.userId,
+          data: {
+            type: "reminder",
+          },
+        });
+      }, reminderIntervalSeconds * 1000);
+    });
+
+    // Store active jobs for cancellation later
+    activeJobs.set(scheduleId, { job: initialJob, interval });
+
+    console.log(`Scheduled notifications with ID: ${scheduleId}`);
+    return scheduleId;
+  } catch (error) {
+    console.error(error);
+    throw new AppError(StatusCodes.BAD_REQUEST, "Error scheduling notifications");
   }
-
-  console.log({ payload });
-
-  const scheduleId = `${targetDateTimeUTC.getTime()}-${reminderIntervalHours}`;
-  const jobs: Job[] = [];
-
-  // Schedule the initial notification
-  const initialJob = schedule.scheduleJob(targetDateTimeUTC, () => {
-    sendNotification("Initial notification at the specified datetime (UTC).");
-  });
-  jobs.push(initialJob);
-
-  // Schedule recurring notifications
-  const recurringJob = schedule.scheduleJob(
-    { start: targetDateTimeUTC, rule: `*/${reminderIntervalHours} * * * *` },
-    () => {
-      sendNotification(`Recurring notification every ${reminderIntervalHours} hour(s) (UTC).`);
-    },
-  );
-  jobs.push(recurringJob);
-
-  // Store active jobs for cancellation later
-  activeJobs.set(scheduleId, jobs);
-  console.log(`Scheduled notifications with ID: ${scheduleId}`);
-
-  return scheduleId;
 }
 
 /**
@@ -65,10 +75,11 @@ export function scheduleNotifications(
  *
  * @param scheduleId - The unique ID returned by `scheduleNotifications`
  */
-function stopNotifications(scheduleId: string): void {
-  const jobs = activeJobs.get(scheduleId);
-  if (jobs) {
-    jobs.forEach((job) => job.cancel());
+export function stopNotifications(scheduleId: string): void {
+  const jobData = activeJobs.get(scheduleId);
+  if (jobData) {
+    if (jobData.job) jobData.job.cancel();
+    if (jobData.interval) clearInterval(jobData.interval);
     activeJobs.delete(scheduleId);
     console.log(`Stopped notifications for schedule ID: ${scheduleId}`);
   } else {

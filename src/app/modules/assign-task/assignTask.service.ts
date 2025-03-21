@@ -5,15 +5,17 @@ import { StatusCodes } from "http-status-codes";
 import AppError from "../../errors/AppError";
 import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
-import { scheduleNotifications } from "../../shared/scheduleNotification";
+import { scheduleNotifications, stopNotifications } from "../../shared/scheduleNotification";
 import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
 import {
+  ALARM_STATUS,
   ASSIGN_TASK_STATUS,
   assignTaskFilterableFields,
   taskSearchableFields,
 } from "./assignTask.constant";
 import { TASK_ASSIGNED_TO } from "./task.constant";
+import { sendNotification } from "../../shared/sendNotification";
 dayjs.extend(utc);
 const createAssignTask = async (user: TTokenUser, payload: { addTaskId: string }) => {
   const addTask = await prisma.addTasks.findUniqueOrThrow({
@@ -49,7 +51,28 @@ const createAssignTask = async (user: TTokenUser, payload: { addTaskId: string }
       addTaskId: payload.addTaskId,
       isAccepted: (task.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true,
     },
+    include: {
+      addTask: {
+        include: {
+          user: true,
+        },
+      },
+      task: {
+        include: {
+          user: true,
+        },
+      },
+    },
   });
+
+  console.log(result.addTask?.user);
+  if (result.addTask?.user?.fcmToken) {
+    sendNotification([result.addTask?.user?.fcmToken], {
+      title: "Task assigned to you",
+      body: `You have been assigned a task by ${result.task?.user?.firstName} ${result.task?.user?.lastName}.`,
+      userId: result.addTask?.user?.id,
+    });
+  }
 
   return result;
 };
@@ -467,6 +490,11 @@ const updateAssignTaskStatus = async (
       },
     },
     include: {
+      addTask: {
+        include: {
+          user: true,
+        },
+      },
       task: {
         include: {
           user: true,
@@ -488,7 +516,48 @@ const updateAssignTaskStatus = async (
   }
 
   const result = await prisma.$transaction(async (transactionClient) => {
-    const result = await prisma.assignTask.update({
+    //AFTER ACCEPT THE ASSIGN TASK, SCHEDULE A NOTIFICATION AND REMAINDER NOTIFICATION IN TASK DATE.
+    if (payload.isAccepted === true && assignTask?.addTask?.user?.fcmToken) {
+      const date = new Date(assignTask.task.date);
+      const time = new Date(assignTask?.task?.time);
+      const dateTime = dayjs(`${date}`).utc().toDate();
+      const message = `${assignTask.task.title} task is assigned to you by ${assignTask.task?.user?.firstName} ${assignTask.task?.user?.lastName}`;
+      const alarmScheduleId = scheduleNotifications(
+        dateTime,
+        //assignTask.task.remainderHour * 60 * 60,
+        1000,
+        {
+          message,
+          userId: user.id,
+          fcmToken: assignTask?.addTask?.user?.fcmToken,
+        },
+      );
+
+      await transactionClient.alarm.create({
+        data: {
+          assignTaskId: id,
+          message,
+          //make remainder in second
+          interval: assignTask.task.remainderHour,
+          dateTime,
+          alarmScheduleId,
+        },
+      });
+
+      // SEND NOTIFICATION TO TASK PROVIDER
+      if (assignTask?.task?.user?.fcmToken) {
+        await sendNotification([assignTask?.task?.user?.fcmToken], {
+          title: "Task Accepted",
+          body: `${assignTask.task.title} task is assigned to you by ${assignTask.task?.user?.firstName} ${assignTask.task?.user?.lastName} has been accepted.`,
+          userId: assignTask?.task?.user?.id,
+        });
+      }
+
+      // STOP NOTIFICATION AFTER 1 HOUR
+      setTimeout(() => stopNotifications(alarmScheduleId), 3600000);
+    }
+
+    const result = await transactionClient.assignTask.update({
       where: {
         id,
         addTask: {
@@ -497,27 +566,6 @@ const updateAssignTaskStatus = async (
       },
       data: payload,
     });
-
-    if (payload.isAccepted === true) {
-      const date = assignTask.task.date;
-      const time = assignTask.task.time;
-      const dateTime = dayjs(`${date} ${time}`).utc().toDate();
-      const message = `${assignTask.task.title} task is assigned to you by ${assignTask.task?.user?.firstName} ${assignTask.task?.user?.lastName}`;
-      const alarmScheduleId = scheduleNotifications(dateTime, assignTask.task.remainderHour, {
-        message,
-        userId: user.id,
-      });
-
-      await transactionClient.alarm.create({
-        data: {
-          assignTaskId: id,
-          message,
-          interval: assignTask.task.remainderHour,
-          dateTime,
-          alarmScheduleId,
-        },
-      });
-    }
 
     return result;
   });
@@ -537,6 +585,21 @@ const deleteAssignTask = async (user: TTokenUser, id: string) => {
   return result;
 };
 
+const stopRemainder = async (id: string) => {
+  const result = await prisma.alarm.updateMany({
+    where: {
+      alarmScheduleId: id,
+    },
+    data: {
+      status: ALARM_STATUS.INACTIVE,
+    },
+  });
+
+  stopNotifications(id);
+
+  return result;
+};
+
 export const AssignTaskServices = {
   createAssignTask,
   createManyAssignTask,
@@ -546,4 +609,5 @@ export const AssignTaskServices = {
   updateAssignTask,
   updateAssignTaskStatus,
   deleteAssignTask,
+  stopRemainder,
 };

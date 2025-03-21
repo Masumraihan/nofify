@@ -173,7 +173,6 @@ const myEarningChartData = async (user: TTokenUser, query: Record<string, unknow
     monthsCoinCount[monthIndex].coin += coin;
   });
 
-  console.log("monthsCoinCount", monthsCoinCount);
   return monthsCoinCount;
 };
 

@@ -35,6 +35,8 @@ router.patch(
   AssignTaskControllers.updateAssignTaskStatus,
 );
 
+router.patch("/stop-remainder/:id", auth("USER"), AssignTaskControllers.stopRemainder);
+
 router.delete("/delete/:id", auth("USER"), AssignTaskControllers.deleteAssignTask);
 
 export const AssignTaskRoutes = router;

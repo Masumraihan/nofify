@@ -100,6 +100,16 @@ const deleteAssignTask = catchAsync(async (req, res) => {
   });
 });
 
+const stopRemainder = catchAsync(async (req, res) => {
+  const result = await AssignTaskServices.stopRemainder(req.params.id);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Remainder stopped successfully",
+    data: result,
+  });
+});
+
 export const AssignTaskControllers = {
   createAssignTask,
   createManyAssignTask,
@@ -109,4 +119,5 @@ export const AssignTaskControllers = {
   updateAssignTask,
   updateAssignTaskStatus,
   deleteAssignTask,
+  stopRemainder,
 };
