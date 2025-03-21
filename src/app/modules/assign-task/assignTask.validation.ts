@@ -2,8 +2,7 @@ import { z } from "zod";
 import { ASSIGN_TASK_STATUS } from "./assignTask.constant";
 const crateAssignTaskValidation = z.object({
   body: z.object({
-    taskId: z.string({ required_error: "Task ID is required" }),
-    userId: z.string({ required_error: "User ID is required" }),
+    addTaskId: z.string({ required_error: "Add Task ID is required" }),
   }),
 });
 
@@ -16,8 +15,7 @@ const crateManyAssignTaskValidation = z.object({
 
 const updateAssignTaskValidation = z.object({
   body: z.object({
-    taskId: z.string().optional(),
-    userId: z.string().optional(),
+    addTaskId: z.string().optional(),
   }),
 });
 

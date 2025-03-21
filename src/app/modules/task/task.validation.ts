@@ -20,6 +20,7 @@ const createTaskValidationSchema = z
     description: z.string({ required_error: "Description is required" }),
     documents: z.array(documentValidationSchema).optional(),
     userIds: z.array(z.string()).optional(),
+    remainderHour: z.number({ required_error: "Remainder hour is required" }),
   })
   .strict();
 
@@ -40,6 +41,7 @@ const updateTaskValidationSchema = z
     description: z.string().optional(),
     documents: z.array(documentValidationSchema).optional(),
     deletedDocumentIds: z.array(z.string()).optional(),
+    remainderHour: z.number().optional(),
   })
   .strict();
 

@@ -14,3 +14,11 @@ export const taskFilterableFields = [
   "time",
   "searchTerm",
 ];
+
+export const ALARM_STATUS = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+  TRIGGERED: "TRIGGERED",
+};
+
+export type TAlarmStatus = (typeof ALARM_STATUS)[keyof typeof ALARM_STATUS];

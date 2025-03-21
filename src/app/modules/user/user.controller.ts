@@ -22,6 +22,16 @@ const getUsers = catchAsync(async (req, res) => {
   });
 });
 
+const getUserUsingReferralCode = catchAsync(async (req, res) => {
+  const result = await UserServices.getUserUsingReferralCode(req.params.referralCode);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "User fetched successfully",
+    data: result,
+  });
+})
+
 const getUser = catchAsync(async (req, res) => {
   const result = await UserServices.getUser(req.params.id);
   sendResponse(res, {
@@ -105,4 +115,5 @@ export const UserControllers = {
   getMyProfile,
   updateMyProfile,
   deleteMyProfile,
+  getUserUsingReferralCode,
 };

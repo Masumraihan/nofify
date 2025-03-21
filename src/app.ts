@@ -18,6 +18,7 @@ import prisma from "./app/shared/prisma";
 import AppError from "./app/errors/AppError";
 import { USER_ROLE } from "./app/enums";
 import { createToken } from "./app/helpers/jwtHelper";
+import { executeAlarm } from "./app/modules/alarm/alarm.service";
 const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
@@ -59,7 +60,10 @@ i18next.use(Backend).init({
 });
 app.use(i18nextMiddleware.handle(i18next));
 // RUN CRON JOBS EVERY HOUR
-cron.schedule("0 * * * *", async () => {});
+//cron.schedule("0 * * * *", async () => {
+//  const result = await executeAlarm();
+//  console.log(result);
+//});
 
 app.use(
   session({

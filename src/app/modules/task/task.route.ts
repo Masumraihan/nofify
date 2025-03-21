@@ -20,7 +20,6 @@ router.post(
     try {
       const files = req.files as Express.Multer.File[];
       const data = req.body.data;
-      
 
       if (files.length) {
         const payload = files.map((file: Express.Multer.File) => {
@@ -61,6 +60,7 @@ router.post(
   },
   TaskController.createTask,
 );
+
 router.patch(
   "/update/:id",
   auth("USER"),
@@ -81,7 +81,6 @@ router.patch(
 
         documents = await uploadManyToS3(payload);
       }
-
       // Prepare the validation payload
       const validationPayload = {
         ...data,

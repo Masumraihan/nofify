@@ -5,14 +5,12 @@ import { PAYMENT_STATUS } from "../payment/payment.constant";
 
 const getUsersChartData = async (query: Record<string, unknown>) => {
   let year = new Date().getFullYear();
-
   if (query.year) {
     year = Number(query.year);
   }
 
-  // Step 1: Group users by month of the year they were created
-  const result = await prisma.user.groupBy({
-    by: ["createdAt"], // Group by createdAt field
+  // Step 1: Fetch all users created within the specified year
+  const users = await prisma.user.findMany({
     where: {
       isDelete: false,
       role: {
@@ -23,15 +21,12 @@ const getUsersChartData = async (query: Record<string, unknown>) => {
         lt: new Date(`${year + 1}-01-01T00:00:00.000Z`), // Start of the next year
       },
     },
-    _count: {
-      id: true, // Count the number of users
-    },
-    orderBy: {
-      createdAt: "asc", // Order by creation date to maintain month sequence
+    select: {
+      createdAt: true, // Fetch only the createdAt field
     },
   });
 
-  // Step 2: Prepare the data to match months
+  // Step 2: Initialize an array for counting users per month
   const monthNames = [
     "January",
     "February",
@@ -47,21 +42,14 @@ const getUsersChartData = async (query: Record<string, unknown>) => {
     "December",
   ];
 
-  // Initialize the months array with 0 user count for each month
   const monthsUserCount = monthNames.map((month) => ({ month, userCount: 0 }));
-  // Step 3: Populate the monthsUserCount array with the aggregated data
-  result.forEach((entry: any) => {
-    const monthIndex = entry.createdAt.getMonth(); // Get the month from createdAt
-    const userCount = entry._count.id || 0; // User count for the given month
 
-    // Assign the user count to the corresponding month in the array
-    monthsUserCount[monthIndex] = {
-      month: monthNames[monthIndex],
-      userCount,
-    };
+  // Step 3: Count users per month
+  users.forEach((user) => {
+    const monthIndex = new Date(user.createdAt).getMonth(); // Get the month index (0-11)
+    monthsUserCount[monthIndex].userCount += 1; // Increment the count for that month
   });
 
-  // Step 4: Return the populated monthsUserCount array
   return monthsUserCount;
 };
 
@@ -134,7 +122,9 @@ const myEarningChartData = async (user: TTokenUser, query: Record<string, unknow
         lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
       },
       assignTask: {
-        userId: user.id,
+        addTask: {
+          userId: user.id,
+        },
       },
       isRedeemed: true,
     },
@@ -179,7 +169,7 @@ const myEarningChartData = async (user: TTokenUser, query: Record<string, unknow
   // Populate monthly revenue array
   result.forEach((entry) => {
     const monthIndex = new Date(entry.createdAt).getMonth(); // Extract month index
-    const coin = entry._sum.coin || 0; // Get the revenue for the month
+    const coin = entry?._sum?.coin || 0; // Get the revenue for the month
     monthsCoinCount[monthIndex].coin += coin;
   });
 

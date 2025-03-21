@@ -92,33 +92,40 @@ const createTask = async (
     if (userIds?.length) {
       await Promise.all(
         userIds.map(async (id: string) => {
-          await transactionClient.assignTask.create({
+          await transactionClient.addTasks.create({
             data: {
               taskId: taskData.id,
               userId: id,
             },
           });
 
-          const assignUser = await transactionClient.user.findFirst({
-            where: {
-              id,
-            },
-          });
+          //const assignUser = await transactionClient.user.findFirst({
+          //  where: {
+          //    id,
+          //  },
+          //});
 
-          if (assignUser?.fcmToken) {
-            sendNotification([assignUser?.fcmToken], {
-              title: "New Task Assigned",
-              body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
-              userId: assignUser.id,
-            });
-          }
+          //if (assignUser?.fcmToken) {
+          //  sendNotification([assignUser?.fcmToken], {
+          //    title: "New Task Assigned",
+          //    body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
+          //    userId: assignUser.id,
+          //  });
+          //}
         }),
       );
     } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
-      await transactionClient.assignTask.create({
+      const addTask = await transactionClient.addTasks.create({
         data: {
           taskId: taskData.id,
           userId: user.id,
+        },
+      });
+
+      await transactionClient.assignTask.create({
+        data: {
+          taskId: taskData.id,
+          addTaskId: addTask.id,
           isAccepted: true,
         },
       });
@@ -177,6 +184,39 @@ const getTasks = async (query: Record<string, unknown>, options: TPaginationOpti
         },
       },
       subCategory: true,
+      addTasks: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          addTasks: true,
+        },
+      },
+      assignTask: {
+        include: {
+          addTask: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  profilePicture: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -207,6 +247,18 @@ const getTaskById = async (id: string) => {
   return await prisma.task.findUniqueOrThrow({
     where: { id },
     include: {
+      addTasks: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+            },
+          },
+        },
+      },
       category: true,
       subCategory: true,
       documents: {
@@ -223,6 +275,28 @@ const getTaskById = async (id: string) => {
           profilePicture: true,
           phoneNumber: true,
           email: true,
+        },
+      },
+      _count: {
+        select: {
+          addTasks: true,
+        },
+      },
+
+      assignTask: {
+        include: {
+          addTask: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  profilePicture: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -294,6 +368,8 @@ const updateTask = async (
 const deleteTask = async (user: TTokenUser, id: string) => {
   return await prisma.task.deleteMany({ where: { id, userId: user.id } });
 };
+
+
 
 export const TaskServices = {
   createTask,

@@ -1,6 +1,11 @@
 import { AssignTask, Prisma } from "@prisma/client";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import { StatusCodes } from "http-status-codes";
+import AppError from "../../errors/AppError";
 import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
+import { scheduleNotifications } from "../../shared/scheduleNotification";
 import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
 import {
@@ -9,15 +14,21 @@ import {
   taskSearchableFields,
 } from "./assignTask.constant";
 import { TASK_ASSIGNED_TO } from "./task.constant";
-import AppError from "../../errors/AppError";
-import { StatusCodes } from "http-status-codes";
-import { sendNotification } from "../../shared/sendNotification";
+dayjs.extend(utc);
+const createAssignTask = async (user: TTokenUser, payload: { addTaskId: string }) => {
+  const addTask = await prisma.addTasks.findUniqueOrThrow({
+    where: {
+      id: payload.addTaskId,
+      task: {
+        userId: user.id,
+      },
+    },
+  });
 
-const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
   const isExist = await prisma.assignTask.findFirst({
     where: {
-      taskId: payload.taskId,
-      userId: payload.userId,
+      taskId: addTask.taskId,
+      addTaskId: payload.addTaskId,
     },
   });
 
@@ -27,13 +38,17 @@ const createAssignTask = async (user: TTokenUser, payload: AssignTask) => {
 
   const task = await prisma.task.findUniqueOrThrow({
     where: {
-      id: payload.taskId,
+      id: addTask.taskId,
       userId: user.id,
     },
   });
 
   const result = await prisma.assignTask.create({
-    data: { ...payload, isAccepted: (task.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true },
+    data: {
+      taskId: task.id,
+      addTaskId: payload.addTaskId,
+      isAccepted: (task.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true,
+    },
   });
 
   return result;
@@ -43,47 +58,41 @@ const createManyAssignTask = async (
   user: TTokenUser,
   payload: { taskId: string; userIds: string[] },
 ) => {
-  const isExist = await prisma.assignTask.findFirst({
-    where: {
-      taskId: payload.taskId,
-      userId: {
-        in: payload.userIds,
-      },
-    },
-  });
-
-  if (isExist) {
-    throw new AppError(
-      StatusCodes.BAD_REQUEST,
-      "At least one selected user is already assigned to this task.",
-    );
-  }
-
-  await prisma.task.findUniqueOrThrow({
-    where: {
-      id: payload.taskId,
-      userId: user.id,
-    },
-  });
-
-  const result = await prisma.assignTask.createMany({
-    data: payload.userIds.map((userId) => ({ taskId: payload.taskId, userId })),
-  });
-
+  //const isExist = await prisma.assignTask.findFirst({
+  //  where: {
+  //    taskId: payload.taskId,
+  //    userId: {
+  //      in: payload.userIds,
+  //    },
+  //  },
+  //});
+  //if (isExist) {
+  //  throw new AppError(
+  //    StatusCodes.BAD_REQUEST,
+  //    "At least one selected user is already assigned to this task.",
+  //  );
+  //}
+  //await prisma.task.findUniqueOrThrow({
+  //  where: {
+  //    id: payload.taskId,
+  //    userId: user.id,
+  //  },
+  //});
+  //const result = await prisma.assignTask.createMany({
+  //  data: payload.userIds.map((userId) => ({ taskId: payload.taskId, userId })),
+  //});
   //SEND EACH USER A NOTIFICATION
-  const users = await prisma.user.findMany({ where: { id: { in: payload.userIds } } });
-
-  users.forEach(async (user) => {
-    if (user.fcmToken) {
-      sendNotification([user.fcmToken], {
-        title: "New Task Assigned",
-        body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
-        userId: user.id,
-      });
-    }
-  });
-
-  return result;
+  //const users = await prisma.user.findMany({ where: { id: { in: payload.userIds } } });
+  //users.forEach(async (user) => {
+  //  if (user.fcmToken) {
+  //    sendNotification([user.fcmToken], {
+  //      title: "New Task Assigned",
+  //      body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
+  //      userId: user.id,
+  //    });
+  //  }
+  //});
+  //return result;
 };
 
 const myTasks = async (
@@ -118,13 +127,15 @@ const myTasks = async (
           },
         },
         {
-          user: {
-            OR: ["firstName", "lastName", "email"].map((field) => ({
-              [field]: {
-                contains: searchTerm,
-                mode: "insensitive",
-              },
-            })),
+          addTask: {
+            user: {
+              OR: ["firstName", "lastName", "email"].map((field) => ({
+                [field]: {
+                  contains: searchTerm,
+                  mode: "insensitive",
+                },
+              })),
+            },
           },
         },
       ],
@@ -157,7 +168,9 @@ const myTasks = async (
   }
 
   const whereConditions: Prisma.AssignTaskWhereInput =
-    andConditions.length > 0 ? { AND: andConditions, userId: user.id } : { userId: user.id };
+    andConditions.length > 0
+      ? { AND: andConditions, addTask: { userId: user.id } }
+      : { addTask: { userId: user.id } };
 
   const result = await prisma.assignTask.findMany({
     where: { ...whereConditions },
@@ -165,11 +178,15 @@ const myTasks = async (
     take: limit,
     orderBy: { [sortBy]: sortOrder },
     include: {
-      user: {
+      addTask: {
         select: {
-          profilePicture: true,
-          firstName: true,
-          lastName: true,
+          user: {
+            select: {
+              profilePicture: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
         },
       },
       coins: {
@@ -250,13 +267,15 @@ const myAssignTasks = async (
           },
         },
         {
-          user: {
-            OR: ["firstName", "lastName", "email"].map((field) => ({
-              [field]: {
-                contains: searchTerm,
-                mode: "insensitive",
-              },
-            })),
+          addTask: {
+            user: {
+              OR: ["firstName", "lastName", "email"].map((field) => ({
+                [field]: {
+                  contains: searchTerm,
+                  mode: "insensitive",
+                },
+              })),
+            },
           },
         },
       ],
@@ -322,11 +341,15 @@ const myAssignTasks = async (
           coin: true,
         },
       },
-      user: {
+      addTask: {
         select: {
-          profilePicture: true,
-          firstName: true,
-          lastName: true,
+          user: {
+            select: {
+              profilePicture: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
         },
       },
 
@@ -381,11 +404,15 @@ const assignTasksDetails = async (id: string) => {
           coin: true,
         },
       },
-      user: {
+      addTask: {
         select: {
-          profilePicture: true,
-          firstName: true,
-          lastName: true,
+          user: {
+            select: {
+              profilePicture: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
         },
       },
       task: {
@@ -415,7 +442,15 @@ const assignTasksDetails = async (id: string) => {
 };
 
 const updateAssignTask = async (user: TTokenUser, id: string, payload: Partial<AssignTask>) => {
-  const result = await prisma.assignTask.update({ where: { id, userId: user.id }, data: payload });
+  const result = await prisma.assignTask.update({
+    where: {
+      id,
+      addTask: {
+        userId: user.id,
+      },
+    },
+    data: payload,
+  });
   return result;
 };
 
@@ -424,7 +459,21 @@ const updateAssignTaskStatus = async (
   id: string,
   payload: Partial<AssignTask>,
 ) => {
-  const assignTask = await prisma.assignTask.findUniqueOrThrow({ where: { id, userId: user.id } });
+  const assignTask = await prisma.assignTask.findUniqueOrThrow({
+    where: {
+      id,
+      addTask: {
+        userId: user.id,
+      },
+    },
+    include: {
+      task: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
 
   if (assignTask.status === ASSIGN_TASK_STATUS.CANCELLED) {
     throw new AppError(StatusCodes.BAD_REQUEST, "You already cancel this task");
@@ -438,12 +487,53 @@ const updateAssignTaskStatus = async (
     throw new AppError(StatusCodes.BAD_REQUEST, "User did not accept this task");
   }
 
-  const result = await prisma.assignTask.update({ where: { id, userId: user.id }, data: payload });
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const result = await prisma.assignTask.update({
+      where: {
+        id,
+        addTask: {
+          userId: user.id,
+        },
+      },
+      data: payload,
+    });
+
+    if (payload.isAccepted === true) {
+      const date = assignTask.task.date;
+      const time = assignTask.task.time;
+      const dateTime = dayjs(`${date} ${time}`).utc().toDate();
+      const message = `${assignTask.task.title} task is assigned to you by ${assignTask.task?.user?.firstName} ${assignTask.task?.user?.lastName}`;
+      const alarmScheduleId = scheduleNotifications(dateTime, assignTask.task.remainderHour, {
+        message,
+        userId: user.id,
+      });
+
+      await transactionClient.alarm.create({
+        data: {
+          assignTaskId: id,
+          message,
+          interval: assignTask.task.remainderHour,
+          dateTime,
+          alarmScheduleId,
+        },
+      });
+    }
+
+    return result;
+  });
+
   return result;
 };
 
 const deleteAssignTask = async (user: TTokenUser, id: string) => {
-  const result = await prisma.assignTask.deleteMany({ where: { id, userId: user.id } });
+  const result = await prisma.assignTask.deleteMany({
+    where: {
+      id,
+      addTask: {
+        userId: user.id,
+      },
+    },
+  });
   return result;
 };
 

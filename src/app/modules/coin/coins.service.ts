@@ -14,6 +14,9 @@ const sendCoins = async (user: TTokenUser, payload: Coins) => {
     where: {
       id: payload.assignTaskId,
     },
+    include: {
+      addTask: true,
+    },
   });
 
   if (!assignedTask) {
@@ -45,7 +48,7 @@ const sendCoins = async (user: TTokenUser, payload: Coins) => {
 
     //AFTER SEND COIN NOTIFY USER
     const userData = await prisma.user.findUniqueOrThrow({
-      where: { id: assignedTask.userId },
+      where: { id: assignedTask.addTask?.userId },
       select: { fcmToken: true, id: true },
     });
 
@@ -74,7 +77,9 @@ const getCoins = async (
   await prisma.coins.findMany({
     where: {
       assignTask: {
-        userId: user.id,
+        addTask: {
+          userId: user.id,
+        },
       },
     },
   });
@@ -112,7 +117,9 @@ const getCoins = async (
   const result = await prisma.coins.findMany({
     where: {
       assignTask: {
-        userId: user.id,
+        addTask: {
+          userId: user.id,
+        },
       },
     },
     skip,
@@ -137,7 +144,9 @@ const getCoins = async (
   const total = await prisma.coins.count({
     where: {
       assignTask: {
-        userId: user.id,
+        addTask: {
+          userId: user.id,
+        },
       },
     },
   });
@@ -166,7 +175,9 @@ const redeemCoins = async (
       where: {
         id: payload.coinsId,
         assignTask: {
-          userId: user.id,
+          addTask: {
+            userId: user.id,
+          },
         },
       },
       data: {
