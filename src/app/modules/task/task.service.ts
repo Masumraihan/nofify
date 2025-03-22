@@ -88,31 +88,13 @@ const createTask = async (
         })),
       });
     }
+
+    let addTaskData;
     if (userIds?.length) {
-      await Promise.all(
-        userIds.map(async (id: string) => {
-          await transactionClient.addTasks.create({
-            data: {
-              taskId: taskData.id,
-              userId: id,
-            },
-          });
-
-          //const assignUser = await transactionClient.user.findFirst({
-          //  where: {
-          //    id,
-          //  },
-          //});
-
-          //if (assignUser?.fcmToken) {
-          //  sendNotification([assignUser?.fcmToken], {
-          //    title: "New Task Assigned",
-          //    body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
-          //    userId: assignUser.id,
-          //  });
-          //}
-        }),
-      );
+      addTaskData = await transactionClient.addTasks.createMany({
+        data: userIds.map((userId) => ({ taskId: taskData.id, userId })),
+      });
+      return { ...taskData, addTasks: addTaskData || [] };
     } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
       const addTask = await transactionClient.addTasks.create({
         data: {
@@ -128,11 +110,17 @@ const createTask = async (
           isAccepted: true,
         },
       });
+      return { ...taskData, addTasks: addTaskData || [] };
     }
-
-    return taskData;
   });
-  return result;
+
+  const allAddTask = await prisma.addTasks.findMany({
+    where: {
+      taskId: result?.id,
+    },
+  });
+
+  return { ...result, allAddTask };
 };
 
 const getTasks = async (query: Record<string, unknown>, options: TPaginationOptions) => {

@@ -17,15 +17,41 @@ import {
 import { TASK_ASSIGNED_TO } from "./task.constant";
 import { sendNotification } from "../../shared/sendNotification";
 dayjs.extend(utc);
-const createAssignTask = async (user: TTokenUser, payload: { addTaskId: string }) => {
-  const addTask = await prisma.addTasks.findUniqueOrThrow({
-    where: {
-      id: payload.addTaskId,
-      task: {
-        userId: user.id,
+const createAssignTask = async (
+  user: TTokenUser,
+  payload: { addTaskId: string; taskId: string; userId: string },
+) => {
+  if (!payload.addTaskId) {
+    if (!payload.taskId) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Task Id is required");
+    } else if (!payload.userId) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "User Id is required");
+    }
+  }
+
+  let addTask;
+
+  if (payload.addTaskId) {
+    const addTaskData = await prisma.addTasks.findUniqueOrThrow({
+      where: {
+        id: payload.addTaskId,
+        task: {
+          userId: user.id,
+        },
       },
-    },
-  });
+    });
+
+    addTask = addTaskData;
+  } else {
+    const addTaskData = await prisma.addTasks.create({
+      data: {
+        userId: payload.userId,
+        taskId: payload.taskId,
+      },
+    });
+
+    addTask = addTaskData;
+  }
 
   const isExist = await prisma.assignTask.findFirst({
     where: {
@@ -65,7 +91,6 @@ const createAssignTask = async (user: TTokenUser, payload: { addTaskId: string }
     },
   });
 
-  console.log(result.addTask?.user);
   if (result.addTask?.user?.fcmToken) {
     sendNotification([result.addTask?.user?.fcmToken], {
       title: "Task assigned to you",
@@ -327,6 +352,16 @@ const myAssignTasks = async (
     andConditions.push({
       AND: Object.entries(filterQuery).map(([key, value]) => {
         if (assignTaskFilterableFields.includes(key)) {
+          if (key === "userId") {
+            return {
+              addTask: {
+                userId: {
+                  equals: value,
+                },
+              },
+            } as Prisma.AssignTaskWhereInput;
+          }
+
           if (key === "isAccepted") {
             value = value === "true" ? true : false;
           }
@@ -521,11 +556,10 @@ const updateAssignTaskStatus = async (
       const date = new Date(assignTask.task.date);
       const time = new Date(assignTask?.task?.time);
       const dateTime = dayjs(`${date}`).utc().toDate();
-      const message = `${assignTask.task.title} task is assigned to you by ${assignTask.task?.user?.firstName} ${assignTask.task?.user?.lastName}`;
+      const message = `You have a pending task: ${assignTask.task.title}. Have you completed it yet?`;
       const alarmScheduleId = scheduleNotifications(
         dateTime,
-        //assignTask.task.remainderHour * 60 * 60,
-        1000,
+        assignTask.task.remainderHour * 60 * 60,
         {
           message,
           userId: user.id,

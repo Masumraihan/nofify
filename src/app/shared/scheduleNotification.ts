@@ -35,21 +35,23 @@ export function scheduleNotifications(
     console.log(`Scheduling notification for user ${payload.userId}`);
 
     const scheduleId = `${new Date().getTime()}-${reminderIntervalSeconds}`;
-    let interval: NodeJS.Timeout | undefined;
+
+    // Store active job initially without the interval
+    activeJobs.set(scheduleId, {});
 
     // Schedule the initial notification
     const initialJob = schedule.scheduleJob(targetDateTimeUTC, () => {
       sendNotification([payload.fcmToken], {
-        title: "Reminder from Nofify," + scheduleId,
+        title: "Your task is starting now",
         body: payload.message,
         userId: payload.userId,
       });
 
       // Start recurring notifications only after the first one is sent
-      interval = setInterval(() => {
+      const interval = setInterval(() => {
         console.log(reminderIntervalSeconds);
         sendNotification([payload.fcmToken], {
-          title: "Reminder from Nofify," + scheduleId,
+          title: "Reminder from Notify, " + scheduleId,
           body: payload.recurringMessage || payload.message,
           userId: payload.userId,
           data: {
@@ -57,10 +59,13 @@ export function scheduleNotifications(
           },
         });
       }, reminderIntervalSeconds * 1000);
+
+      // Update the stored job with the interval reference
+      activeJobs.set(scheduleId, { job: initialJob, interval });
     });
 
-    // Store active jobs for cancellation later
-    activeJobs.set(scheduleId, { job: initialJob, interval });
+    // Store initial job reference
+    activeJobs.set(scheduleId, { job: initialJob });
 
     console.log(`Scheduled notifications with ID: ${scheduleId}`);
     return scheduleId;
@@ -79,8 +84,12 @@ export function stopNotifications(scheduleId: string): void {
   const jobData = activeJobs.get(scheduleId);
   if (jobData) {
     if (jobData.job) jobData.job.cancel();
-    if (jobData.interval) clearInterval(jobData.interval);
+    if (jobData.interval) {
+      clearInterval(jobData.interval);
+      console.log(`Cleared interval for schedule ID: ${scheduleId}`);
+    }
     activeJobs.delete(scheduleId);
+
     console.log(`Stopped notifications for schedule ID: ${scheduleId}`);
   } else {
     console.log(`No active notification found for schedule ID: ${scheduleId}`);
