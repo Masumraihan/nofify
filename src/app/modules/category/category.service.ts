@@ -74,6 +74,8 @@ const getAllSubCategory = async (query: Record<string, unknown>, options: TPagin
 
   const { searchTerm, ...filterData } = query;
 
+  console.log({ filterData });
+
   if (searchTerm) {
     AndConditions.push({
       OR: categorySearchableFields.map((field) => ({

@@ -6,8 +6,12 @@ const router = Router();
 
 router.get("/categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllCategory);
 router.get("/sub-categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllSubCategory);
-router.post("/create", auth("SUPER_ADMIN"), CategoryControllers.createCategory);
-router.post("/create-sub-category", auth("SUPER_ADMIN"), CategoryControllers.createSubCategory);
+router.post("/create", auth("SUPER_ADMIN", "USER"), CategoryControllers.createCategory);
+router.post(
+  "/create-sub-category",
+  auth("SUPER_ADMIN", "USER"),
+  CategoryControllers.createSubCategory,
+);
 router.patch("/update/:id", auth("SUPER_ADMIN"), CategoryControllers.updateCategory);
 router.patch(
   "/update-sub-category/:id",

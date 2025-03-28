@@ -96,11 +96,22 @@ const signUpIntoDb = async (payload: any) => {
         throw new AppError(StatusCodes.BAD_REQUEST, "Invalid Referral Code");
       }
 
-      // ADD 200 COIN TO REFER USER
+      // ADD 200 COIN TO BOTH USER
       if (referUser) {
         await transactionClient.user.update({
           where: {
             id: referUser.id,
+          },
+          data: {
+            totalCoins: {
+              increment: 200,
+            },
+          },
+        });
+
+        await transactionClient.user.update({
+          where: {
+            id: user.id,
           },
           data: {
             totalCoins: {

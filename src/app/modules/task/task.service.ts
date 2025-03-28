@@ -1,3 +1,5 @@
+import path from "path";
+import fs from "fs";
 import { File, Prisma, Task } from "@prisma/client";
 import { StatusCodes } from "http-status-codes";
 import { deleteManyFromS3 } from "../../constant/s3";
@@ -8,6 +10,8 @@ import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
 import { TASK_ASSIGNED_TO } from "../assign-task/task.constant";
 import { taskSearchableFields } from "./task.constant";
+import { sendMail } from "../../helpers/sendMail";
+import moment from "moment";
 
 const createTask = async (
   user: TTokenUser,
@@ -77,6 +81,11 @@ const createTask = async (
   const result = await prisma.$transaction(async (transactionClient) => {
     const taskData = await transactionClient.task.create({
       data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
+      include: {
+        user: true,
+        category: true,
+        subCategory: true,
+      },
     });
     if (documents?.length) {
       await transactionClient.file.createMany({
@@ -94,6 +103,29 @@ const createTask = async (
       addTaskData = await transactionClient.addTasks.createMany({
         data: userIds.map((userId) => ({ taskId: taskData.id, userId })),
       });
+
+      // SEND MAIL TO EACH ADDED USER
+
+      const users = await transactionClient.user.findMany({ where: { id: { in: userIds } } });
+      users.forEach(async (user) => {
+        const parentMailTemplate = path.join(process.cwd(), "/src/template/shortlist-task.html");
+        const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
+        const html = forgetOtpEmail
+          .replace(/{{assignedTo}}/g, `${user.firstName} ${user.lastName}`)
+          .replace(/{{creatorName}}/g, `${taskData?.user?.firstName} ${taskData?.user?.lastName}`)
+          .replace(/{{taskTitle}}/g, `${taskData?.title}`)
+          .replace(/{{categoryName}}/g, `${taskData?.category?.name}`)
+          .replace(/{{subCategoryName}}/g, `${taskData?.category?.name}`)
+          .replace(/{{taskDate}}/g, `${moment(taskData?.date).format("LL")}`)
+          .replace(/{{remainderHour}}/g, `${taskData?.remainderHour}`)
+          .replace(/{{taskDescription}}/g, `${taskData?.description}`);
+        await sendMail({
+          to: user.email,
+          html,
+          subject: "You have been short listed for a task",
+        });
+      });
+
       return { ...taskData, addTasks: addTaskData || [] };
     } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
       const addTask = await transactionClient.addTasks.create({

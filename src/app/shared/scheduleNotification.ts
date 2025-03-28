@@ -29,7 +29,7 @@ export function scheduleNotifications(
     const now = new Date();
     if (targetDateTimeUTC < now) {
       console.error("Target datetime is in the past. Notification not scheduled.");
-      return "";
+      throw new AppError(StatusCodes.BAD_REQUEST, "Task datetime is in the past.");
     }
 
     console.log(`Scheduling notification for user ${payload.userId}`);
@@ -49,7 +49,6 @@ export function scheduleNotifications(
 
       // Start recurring notifications only after the first one is sent
       const interval = setInterval(() => {
-        console.log(reminderIntervalSeconds);
         sendNotification([payload.fcmToken], {
           title: "Reminder from Notify, " + scheduleId,
           body: payload.recurringMessage || payload.message,
@@ -69,9 +68,9 @@ export function scheduleNotifications(
 
     console.log(`Scheduled notifications with ID: ${scheduleId}`);
     return scheduleId;
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    throw new AppError(StatusCodes.BAD_REQUEST, "Error scheduling notifications");
+    throw new AppError(StatusCodes.BAD_REQUEST, error.message || "Failed to schedule notification");
   }
 }
 

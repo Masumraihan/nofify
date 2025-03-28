@@ -1,3 +1,5 @@
+import path from "path";
+import fs from "fs";
 import { AssignTask, Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -16,6 +18,8 @@ import {
 } from "./assignTask.constant";
 import { TASK_ASSIGNED_TO } from "./task.constant";
 import { sendNotification } from "../../shared/sendNotification";
+import moment from "moment";
+import { sendMail } from "../../helpers/sendMail";
 dayjs.extend(utc);
 const createAssignTask = async (
   user: TTokenUser,
@@ -64,18 +68,23 @@ const createAssignTask = async (
     throw new Error("You have already assigned this task");
   }
 
-  const task = await prisma.task.findUniqueOrThrow({
+  const taskData = await prisma.task.findUniqueOrThrow({
     where: {
       id: addTask.taskId,
       userId: user.id,
+    },
+    include: {
+      user: true,
+      category: true,
+      subCategory: true,
     },
   });
 
   const result = await prisma.assignTask.create({
     data: {
-      taskId: task.id,
+      taskId: taskData.id,
       addTaskId: payload.addTaskId,
-      isAccepted: (task.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true,
+      isAccepted: (taskData.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true,
     },
     include: {
       addTask: {
@@ -89,6 +98,23 @@ const createAssignTask = async (
         },
       },
     },
+  });
+
+  const parentMailTemplate = path.join(process.cwd(), "/src/template/assign-task.html");
+  const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
+  const html = forgetOtpEmail
+    .replace(/{{assignedTo}}/g, `${user.firstName} ${user.lastName}`)
+    .replace(/{{creatorName}}/g, `${taskData?.user?.firstName} ${taskData?.user?.lastName}`)
+    .replace(/{{taskTitle}}/g, `${taskData?.title}`)
+    .replace(/{{categoryName}}/g, `${taskData?.category?.name}`)
+    .replace(/{{subCategoryName}}/g, `${taskData?.category?.name}`)
+    .replace(/{{taskDate}}/g, `${moment(taskData?.date).format("LL")}`)
+    .replace(/{{remainderHour}}/g, `${taskData?.remainderHour}`)
+    .replace(/{{taskDescription}}/g, `${taskData?.description}`);
+  await sendMail({
+    to: user.email,
+    html,
+    subject: "You have been assigned for a task",
   });
 
   if (result.addTask?.user?.fcmToken) {
