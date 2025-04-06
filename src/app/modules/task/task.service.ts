@@ -12,6 +12,7 @@ import { TASK_ASSIGNED_TO } from "../assign-task/task.constant";
 import { taskSearchableFields } from "./task.constant";
 import { sendMail } from "../../helpers/sendMail";
 import moment from "moment";
+import { addTaskToGoogleCalendar } from "../../shared/addTaskToGoogleCalendar";
 
 const createTask = async (
   user: TTokenUser,
@@ -423,6 +424,16 @@ const deleteTask = async (user: TTokenUser, id: string) => {
   });
 };
 
+const addTaskIntoCalendar = async ({ id, googleToken }: { id: string; googleToken: string }) => {
+  try {
+    const task = await prisma.task.findUniqueOrThrow({ where: { id } });
+    const result = await addTaskToGoogleCalendar({ task });
+    return result;
+  } catch (error) {
+    console.log(error, "::::::::::::::::::::::::::::::::::");
+  }
+};
+
 export const TaskServices = {
   createTask,
   getTasks,
@@ -430,4 +441,5 @@ export const TaskServices = {
   deleteTask,
   getMyTasks,
   getTaskById,
+  addTaskIntoCalendar,
 };

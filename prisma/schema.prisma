@@ -22,34 +22,35 @@ model Validation {
 }
 
 model User {
-  id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  firstName      String
-  lastName       String?
-  fullName       String?
-  email          String
-  profilePicture String?        @default("")
-  phoneNumber    String?
-  fcmToken       String?        @default("")
-  password       String?        @default("")
-  role           String         @default("USER")
-  documents      Json[]
-  isDelete       Boolean        @default(false)
-  isActive       Boolean        @default(true)
-  stripeId       String?        @default("")
-  totalCoins     Int            @default(0)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  code           String         @unique // my referral code
-  referralCode   String? // referral code of the user
-  validation     Validation?
-  notifications  Notification[]
-  subscription   Subscription[]
-  payment        Payment[]
-  tasks          Task[]
-  files          File[]
-  withdrawals    Withdrawal[]
-  locationPaths  LocationPath[]
-  addTasks       AddTasks[]
+  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
+  firstName          String
+  lastName           String?
+  fullName           String?
+  email              String
+  profilePicture     String?        @default("")
+  phoneNumber        String?
+  fcmToken           String?        @default("")
+  password           String?        @default("")
+  role               String         @default("USER")
+  documents          Json[]
+  isDelete           Boolean        @default(false)
+  isActive           Boolean        @default(true)
+  stripeId           String?        @default("")
+  totalCoins         Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  code               String         @unique // my referral code
+  referralCode       String? // referral code of the user
+  googleRefreshToken String?
+  validation         Validation?
+  notifications      Notification[]
+  subscription       Subscription[]
+  payment            Payment[]
+  tasks              Task[]
+  files              File[]
+  withdrawals        Withdrawal[]
+  locationPaths      LocationPath[]
+  addTasks           AddTasks[]
 
   @@map("users")
 }

@@ -6,6 +6,7 @@ import { CustomRequest } from "../../types/common";
 import pick from "../../shared/pick";
 import { PaginationOption } from "../../../constant/common";
 import { taskFilterableFields } from "./task.constant";
+import AppError from "../../errors/AppError";
 
 const createTask = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
@@ -77,6 +78,23 @@ const deleteTask = catchAsync(async (req, res) => {
   });
 });
 
+const addTaskIntoCalendar = catchAsync(async (req, res) => {
+  const googleToken = req.headers?.token as string | undefined;
+  if (!googleToken) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Please provide google token");
+  }
+  const result = await TaskServices.addTaskIntoCalendar({
+    id: req.params.id,
+    googleToken,
+  });
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Task added into calendar successfully",
+    data: result,
+  });
+});
+
 export const TaskController = {
   createTask,
   getTasks,
@@ -84,4 +102,5 @@ export const TaskController = {
   deleteTask,
   getMyTasks,
   getTaskById,
+  addTaskIntoCalendar,
 };

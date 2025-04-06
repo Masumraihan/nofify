@@ -8,7 +8,7 @@ import i18nextMiddleware from "i18next-http-middleware";
 import globalErrorHandler from "./app/middlewares/globalErrorHandlers";
 import notFoundErrorHandler from "./app/middlewares/notFoundErrorHandler";
 import router from "./app/routes";
-import passport from "passport";
+import passport, { use } from "passport";
 import GoogleStrategy from "passport-google-oauth20";
 import session from "express-session";
 import config from "./app/config";
@@ -19,6 +19,9 @@ import AppError from "./app/errors/AppError";
 import { USER_ROLE } from "./app/enums";
 import { createToken } from "./app/helpers/jwtHelper";
 import { executeAlarm } from "./app/modules/alarm/alarm.service";
+import { CipherKey } from "crypto";
+import { User } from "@prisma/client";
+import { oauth2Client } from "./app/shared/oauth2Client";
 const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
@@ -67,13 +70,28 @@ app.use(i18nextMiddleware.handle(i18next));
 
 app.use(
   session({
-    secret: "your-secret-key", // Replace with a secure secret
+    secret: config.auth.googleLoginSecret as CipherKey, // Replace with a secure secret
     resave: false,
     saveUninitialized: false,
   }),
 );
 app.use(passport.initialize());
 app.use(passport.session());
+
+passport.serializeUser((user: any, done) => {
+  // Store the user's ID or any unique identifier in the session
+  done(null, user); // or use `user.email` or `user.id` (whichever is unique)
+});
+
+passport.deserializeUser(async (user: User, done) => {
+  try {
+    // Fetch user data from database using the stored ID
+    const userData = await prisma.user.findFirst({ where: { id: user.id } });
+    done(null, userData); // Attaches the full user object to `req.user`
+  } catch (error) {
+    done(error, null);
+  }
+});
 
 passport.use(
   new Strategy(
@@ -83,12 +101,12 @@ passport.use(
       callbackURL: config.auth.googleRedirectUrl as string,
       passReqToCallback: true,
     },
-    function (request, accessToken, refreshToken, profile, done) {
-      // Simulate a user object. Replace with your database user logic.
+    async function (request, accessToken, refreshToken, profile, done) {
       const user = {
         id: profile.id,
         name: profile.displayName,
         email: profile?.emails?.length ? profile.emails[0].value : null,
+        token: accessToken,
       };
 
       return done(null, user); // Pass the user object
@@ -120,14 +138,18 @@ app.get(
 );
 app.get(
   "/auth/google/callback",
-  passport.authenticate("google", { session: false }),
+  passport.authenticate("google", { session: true }),
   async (req, res, next) => {
     try {
+  
+
       const user = req.user;
       if (user && "email" in user) {
         const userData = await prisma.user.findFirst({
           where: { email: user?.email as string },
         });
+
+      
 
         let accessToken = null;
         let refreshToken = null;
@@ -189,6 +211,7 @@ app.get(
           data: {
             accessToken,
             refreshToken,
+            googleToken: (user as any).token,
           },
         });
       }

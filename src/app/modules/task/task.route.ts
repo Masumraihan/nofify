@@ -12,6 +12,7 @@ const router = Router();
 router.get("/tasks", auth("SUPER_ADMIN", "USER"), TaskController.getTasks);
 router.get("/my-tasks", auth("USER"), TaskController.getMyTasks);
 router.get("/:id", auth("SUPER_ADMIN", "USER"), TaskController.getTaskById);
+
 router.post(
   "/create",
   auth("USER"),
@@ -23,10 +24,14 @@ router.post(
 
       if (files.length) {
         const payload = files.map((file: Express.Multer.File) => {
-          const path = `nofify/documents/${createId()}`;
+          const path = `nofify/documents`;
+          const extension = file.originalname.split(".").pop();
+          const fileKey = `${Math.floor(100000 + Math.random() * 900000)}${Date.now()}`;
           return {
             path,
             file: file.buffer,
+            key: fileKey,
+            extension,
           };
         });
         const documents = await uploadManyToS3(payload);
@@ -60,7 +65,7 @@ router.post(
   },
   TaskController.createTask,
 );
-
+router.post("/add-into-calender/:id", TaskController.addTaskIntoCalendar);
 router.patch(
   "/update/:id",
   auth("USER"),
@@ -74,13 +79,20 @@ router.patch(
       // Process uploaded files if any
       let documents: { url: string; key: string }[] = [];
       if (files?.length) {
-        const payload = files.map((file) => ({
-          path: `nofify/documents/${createId()}`,
-          file: file.buffer,
-        }));
+        const payload = files.map((file) => {
+          const extension = file.originalname.split(".").pop();
+          const fileKey = `${Math.floor(100000 + Math.random() * 900000)}${Date.now()}`;
+          return {
+            path: `nofify/documents`,
+            file: file.buffer,
+            extension,
+            key: fileKey,
+          };
+        });
 
         documents = await uploadManyToS3(payload);
       }
+
       // Prepare the validation payload
       const validationPayload = {
         ...data,

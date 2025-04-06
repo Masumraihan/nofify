@@ -10,7 +10,6 @@ export const uploadToS3 = async (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { file, fileName }: { file: any; fileName: string },
 ): Promise<string | null> => {
-
   const command = new PutObjectCommand({
     Bucket: config.aws.bucket,
     Key: fileName,
@@ -68,6 +67,7 @@ export const uploadManyToS3 = async (
       const newFileName = key ? key : `${Math.floor(100000 + Math.random() * 900000)}${Date.now()}`;
 
       const fileKey = `${path}/${newFileName}.${extension}`;
+      console.log({ key, extension, newFileName });
       const command = new PutObjectCommand({
         Bucket: config.aws.bucket as string,
         Key: fileKey,
