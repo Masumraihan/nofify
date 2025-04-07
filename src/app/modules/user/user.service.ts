@@ -50,7 +50,14 @@ const getUsers = async (
   };
 
   const result = await prisma.user.findMany({
-    where: whereConditions,
+    where: {
+      ...whereConditions,
+      NOT: [
+        {
+          id: user.id,
+        },
+      ],
+    },
     skip,
     take: limit,
     orderBy: {
@@ -68,6 +75,8 @@ const getUsers = async (
       createdAt: true,
       updatedAt: true,
       isActive: true,
+      code: true,
+      referralCode: true,
     },
   });
 
@@ -128,8 +137,61 @@ const getUser = async (id: string) => {
       updatedAt: true,
       isActive: true,
       phoneNumber: true,
+      code: true,
+      referralCode: true,
     },
   });
+
+  let referredBy = null;
+  if (result?.referralCode) {
+    referredBy = await prisma.user.findFirst({
+      where: {
+        code: result?.referralCode,
+        isDelete: false,
+      },
+
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        profilePicture: true,
+        createdAt: true,
+        updatedAt: true,
+        isActive: true,
+        phoneNumber: true,
+        code: true,
+        referralCode: true,
+      },
+    });
+  }
+
+  return { ...result, referredBy };
+};
+const getUserUsingReferralCode = async (code: string) => {
+  console.log({ code });
+  const result = await prisma.user.findFirst({
+    where: {
+      code,
+      isDelete: false,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      role: true,
+      profilePicture: true,
+      createdAt: true,
+      updatedAt: true,
+      isActive: true,
+      phoneNumber: true,
+      code: true,
+      referralCode: true,
+    },
+  });
+
   return result;
 };
 
@@ -210,4 +272,5 @@ export const UserServices = {
   getMyProfile,
   updateMyProfile,
   deleteMyProfile,
+  getUserUsingReferralCode,
 };

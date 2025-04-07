@@ -100,7 +100,7 @@ const resendOtp = catchAsync(async (req, res) => {
   //  throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid Token");
   //}
 
-  const { token } = await AuthServices.resendOtp( req.body);
+  const { token } = await AuthServices.resendOtp(req.body);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -207,7 +207,7 @@ const forgetPassword = catchAsync(async (req, res) => {
 
 const resetPassword = catchAsync(async (req, res) => {
   const token = req.headers.token as string;
-    const token_type = req.headers.token_type as string;
+  const token_type = req.headers.token_type as string;
   if (!token) {
     throw new AppError(StatusCodes.UNAUTHORIZED, "Please provide your token");
   }
@@ -248,6 +248,22 @@ const resetPassword = catchAsync(async (req, res) => {
 //  });
 //});
 
+const success = catchAsync(async (req, res) => {
+  const { id, role, accessToken, refreshToken } = req.query;
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Logged in successfully",
+    data: {
+      accessToken,
+      refreshToken,
+      role,
+      id,
+    },
+  });
+});
+
 const googleAuth = catchAsync(async (req, res) => {
   passport.authenticate("google", { scope: ["profile", "email"] });
 });
@@ -267,4 +283,5 @@ export const AuthController = {
   verifyAccount,
   resendOtp,
   changePassword,
+  success,
 };

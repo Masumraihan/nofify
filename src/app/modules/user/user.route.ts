@@ -13,6 +13,7 @@ const router = express.Router();
 
 router.get("/users", auth("SUPER_ADMIN", "USER"), UserControllers.getUsers);
 router.get("/profile", auth("SUPER_ADMIN", "USER"), UserControllers.getMyProfile);
+router.get("/code/:referralCode", auth("SUPER_ADMIN"), UserControllers.getUserUsingReferralCode);
 router.get("/:id", auth("SUPER_ADMIN"), UserControllers.getUser);
 
 router.patch(

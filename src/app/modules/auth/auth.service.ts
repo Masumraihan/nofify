@@ -1,4 +1,3 @@
-import { User } from "@prisma/client";
 import bcrypt from "bcrypt";
 import fs from "fs";
 import { StatusCodes } from "http-status-codes";
@@ -10,10 +9,9 @@ import AppError from "../../errors/AppError";
 import { createToken, verifyToken } from "../../helpers/jwtHelper";
 import { sendMail } from "../../helpers/sendMail";
 import prisma from "../../shared/prisma";
-import { sendOTP, sendSNSMessage } from "../../shared/sendSNSMessage";
+import { sendMessage } from "../../shared/sendMessage";
 import { TTokenUser } from "../../types/common";
 import { generateReferCode } from "./auth.utils";
-import { sendMessage, sendTwilioMessage } from "../../shared/sendMessage";
 
 const signUpIntoDb = async (payload: any) => {
   const isUserExist = await prisma.user.findFirst({
@@ -70,7 +68,7 @@ const signUpIntoDb = async (payload: any) => {
 
     // generate token
     const expiresAt = moment(currentTime).add(
-      process.env.NODE_ENV === "development" ? 2 : 5,
+      process.env.NODE_ENV === "development" ? 5 : 10,
       "minute",
     );
 
@@ -90,15 +88,30 @@ const signUpIntoDb = async (payload: any) => {
     if (payload.referralCode) {
       const referUser = await transactionClient.user.findFirst({
         where: {
-          referralCode: payload?.referralCode,
+          code: payload?.referralCode,
         },
       });
 
-      // ADD 200 COIN TO REFER USER
+      if (!referUser) {
+        throw new AppError(StatusCodes.BAD_REQUEST, "Invalid Referral Code");
+      }
+
+      // ADD 200 COIN TO BOTH USER
       if (referUser) {
         await transactionClient.user.update({
           where: {
             id: referUser.id,
+          },
+          data: {
+            totalCoins: {
+              increment: 200,
+            },
+          },
+        });
+
+        await transactionClient.user.update({
+          where: {
+            id: user.id,
           },
           data: {
             totalCoins: {
@@ -119,10 +132,6 @@ const signUpIntoDb = async (payload: any) => {
       html,
       subject: "Verify OTP From Pentagon",
     });
-
-    //if (user.phoneNumber) {
-    //  //CREATE TWILIO NUMBER
-    //}
 
     return { token };
   });
@@ -233,6 +242,23 @@ const verifyAccount = async (token: string, payload: { otp: number }) => {
     },
   });
 
+  const totalValidationLength = await prisma.validation.count({
+    where: {
+      userId: userData.id,
+    },
+  });
+
+  if (totalValidationLength === 1) {
+    const template = path.join(process.cwd(), "/src/template/account-verify-success.html");
+    const forgetOtpEmail = fs.readFileSync(template, "utf-8");
+    const html = forgetOtpEmail.replace(/{{name}}/g, userData.email);
+    await sendMail({
+      to: userData.email,
+      html,
+      subject: "Account Verified Successfully",
+    });
+  }
+
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
   const accessToken = createToken(
     jwtPayload,
@@ -295,12 +321,12 @@ const resendOtp = async (payload: { email?: string; phoneNumber?: string; type?:
     //const res = await sendVerificationCode(userData.phoneNumber as string);
   } else {
     //  SEND EMAIL FOR VERIFICATION
-    const parentMailTemplate = path.join(process.cwd(), "/src/template/email.html");
+    const parentMailTemplate = path.join(process.cwd(), "/src/template/resend.html");
     const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
     const html = forgetOtpEmail
       .replace(/{{name}}/g, userData.email)
       .replace(/{{otp}}/g, otp.toString());
-    sendMail({ to: userData.email, html, subject: "OTP From United Threads" });
+    sendMail({ to: userData.email, html, subject: "OTP From Nofify" });
     // after send verification email put the otp into db
   }
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id.toString() };
@@ -533,7 +559,7 @@ const forgetPasswordIntoDb = async (payload: {
     const html = forgetOtpEmail
       .replace(/{{name}}/g, userData.email)
       .replace(/{{otp}}/g, otp.toString());
-    sendMail({ to: userData.email, html, subject: "Forget Password Otp From United Threads" });
+    sendMail({ to: userData.email, html, subject: "Forget Password Otp From Nofify" });
   }
 
   return {

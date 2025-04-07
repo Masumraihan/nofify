@@ -13,6 +13,7 @@ import { UserRoutes } from "../modules/user/user.route";
 import { SubscriptionRoutes } from "../modules/subscription/subscription.route";
 import { CoinsRoutes } from "../modules/coin/coins.route";
 import { WithdrawalRoutes } from "../modules/withdrawal/withdrawal.route";
+import { GoogleCalenderRoutes } from "../modules/google-calender/googleCalender.route";
 
 const router = express.Router();
 
@@ -44,6 +45,10 @@ const moduleRoutes = [
   {
     path: "/task",
     route: TaskRoutes,
+  },
+  {
+    path: "/google-calender",
+    route: GoogleCalenderRoutes,
   },
   {
     path: "/assign-task",

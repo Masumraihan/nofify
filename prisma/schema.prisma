@@ -22,34 +22,35 @@ model Validation {
 }
 
 model User {
-  id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  firstName      String
-  lastName       String?
-  fullName       String?
-  email          String
-  profilePicture String?        @default("")
-  phoneNumber    String?
-  fcmToken       String?        @default("")
-  password       String?        @default("")
-  role           String         @default("USER")
-  documents      Json[]
-  isDelete       Boolean        @default(false)
-  isActive       Boolean        @default(true)
-  stripeId       String?        @default("")
-  totalCoins     Int            @default(0)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  code           String         @unique // my referral code
-  referralCode   String? // referral code of the user
-  validation     Validation?
-  notifications  Notification[]
-  subscription   Subscription[]
-  payment        Payment[]
-  tasks          Task[]
-  assignTasks    AssignTask[]
-  files          File[]
-  withdrawals    Withdrawal[]
-  locationPaths  LocationPath[]
+  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
+  firstName          String
+  lastName           String?
+  fullName           String?
+  email              String
+  profilePicture     String?        @default("")
+  phoneNumber        String?
+  fcmToken           String?        @default("")
+  password           String?        @default("")
+  role               String         @default("USER")
+  documents          Json[]
+  isDelete           Boolean        @default(false)
+  isActive           Boolean        @default(true)
+  stripeId           String?        @default("")
+  totalCoins         Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  code               String         @unique // my referral code
+  referralCode       String? // referral code of the user
+  googleRefreshToken String?
+  validation         Validation?
+  notifications      Notification[]
+  subscription       Subscription[]
+  payment            Payment[]
+  tasks              Task[]
+  files              File[]
+  withdrawals        Withdrawal[]
+  locationPaths      LocationPath[]
+  addTasks           AddTasks[]
 
   @@map("users")
 }
@@ -146,27 +147,58 @@ model Task {
   date          String
   time          String
   description   String
+  remainderHour Int          @default(1)
   documents     File[]
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  assignTasks   AssignTask[]
+  assignTask    AssignTask?
+  addTasks      AddTasks[]
 
   @@map("tasks")
 }
 
+model AddTasks {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String      @db.ObjectId
+  user       User        @relation(fields: [userId], references: [id])
+  taskId     String      @db.ObjectId
+  task       Task        @relation(fields: [taskId], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  assignTask AssignTask?
+
+  @@map("addTasks")
+}
+
 model AssignTask {
   id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  taskId     String   @db.ObjectId
+  taskId     String   @unique @db.ObjectId
   task       Task     @relation(fields: [taskId], references: [id])
-  userId     String   @db.ObjectId
+  addTaskId  String   @unique @db.ObjectId
+  addTask    AddTasks @relation(fields: [addTaskId], references: [id])
   status     String   @default("PENDING")
   isAccepted Boolean  @default(false)
-  user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   coins      Coins[]
+  alarm      Alarm?
 
   @@map("assignTask")
+}
+
+model Alarm {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  assignTaskId    String     @unique @db.ObjectId
+  assignTask      AssignTask @relation(fields: [assignTaskId], references: [id])
+  status          String     @default("ACTIVE")
+  alarmScheduleId String     @unique
+  message         String
+  interval        Int
+  dateTime        DateTime
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@map("alarms")
 }
 
 model Coins {

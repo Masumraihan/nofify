@@ -1,14 +1,18 @@
+import path from "path";
+import fs from "fs";
 import { File, Prisma, Task } from "@prisma/client";
+import { StatusCodes } from "http-status-codes";
+import { deleteManyFromS3 } from "../../constant/s3";
+import AppError from "../../errors/AppError";
+import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
-import { paginationHelper } from "../../helpers/paginationHelper";
 import { TASK_ASSIGNED_TO } from "../assign-task/task.constant";
-import AppError from "../../errors/AppError";
-import { StatusCodes } from "http-status-codes";
 import { taskSearchableFields } from "./task.constant";
-import { deleteManyFromS3 } from "../../constant/s3";
-import { sendNotification } from "../../shared/sendNotification";
+import { sendMail } from "../../helpers/sendMail";
+import moment from "moment";
+import { addTaskToGoogleCalendar } from "../../shared/addTaskToGoogleCalendar";
 
 const createTask = async (
   user: TTokenUser,
@@ -78,6 +82,11 @@ const createTask = async (
   const result = await prisma.$transaction(async (transactionClient) => {
     const taskData = await transactionClient.task.create({
       data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
+      include: {
+        user: true,
+        category: true,
+        subCategory: true,
+      },
     });
     if (documents?.length) {
       await transactionClient.file.createMany({
@@ -89,44 +98,62 @@ const createTask = async (
         })),
       });
     }
+
+    let addTaskData;
     if (userIds?.length) {
-      await Promise.all(
-        userIds.map(async (id: string) => {
-          await transactionClient.assignTask.create({
-            data: {
-              taskId: taskData.id,
-              userId: id,
-            },
-          });
+      addTaskData = await transactionClient.addTasks.createMany({
+        data: userIds.map((userId) => ({ taskId: taskData.id, userId })),
+      });
 
-          const assignUser = await transactionClient.user.findFirst({
-            where: {
-              id,
-            },
-          });
+      // SEND MAIL TO EACH ADDED USER
 
-          if (assignUser?.fcmToken) {
-            sendNotification([assignUser?.fcmToken], {
-              title: "New Task Assigned",
-              body: `You have been assigned a new task by ${user.firstName || "Unknown User"}.`,
-              userId: assignUser.id,
-            });
-          }
-        }),
-      );
+      const users = await transactionClient.user.findMany({ where: { id: { in: userIds } } });
+      users.forEach(async (user) => {
+        const parentMailTemplate = path.join(process.cwd(), "/src/template/shortlist-task.html");
+        const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
+        const html = forgetOtpEmail
+          .replace(/{{assignedTo}}/g, `${user.firstName} ${user.lastName}`)
+          .replace(/{{creatorName}}/g, `${taskData?.user?.firstName} ${taskData?.user?.lastName}`)
+          .replace(/{{taskTitle}}/g, `${taskData?.title}`)
+          .replace(/{{categoryName}}/g, `${taskData?.category?.name}`)
+          .replace(/{{subCategoryName}}/g, `${taskData?.category?.name}`)
+          .replace(/{{taskDate}}/g, `${moment(taskData?.date).format("LL")}`)
+          .replace(/{{remainderHour}}/g, `${taskData?.remainderHour}`)
+          .replace(/{{taskDescription}}/g, `${taskData?.description}`);
+        await sendMail({
+          to: user.email,
+          html,
+          subject: "You have been short listed for a task",
+        });
+      });
+
+      return { ...taskData, addTasks: addTaskData || [] };
     } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
-      await transactionClient.assignTask.create({
+      const addTask = await transactionClient.addTasks.create({
         data: {
           taskId: taskData.id,
           userId: user.id,
+        },
+      });
+
+      await transactionClient.assignTask.create({
+        data: {
+          taskId: taskData.id,
+          addTaskId: addTask.id,
           isAccepted: true,
         },
       });
+      return { ...taskData, addTasks: addTaskData || [] };
     }
-
-    return taskData;
   });
-  return result;
+
+  const allAddTask = await prisma.addTasks.findMany({
+    where: {
+      taskId: result?.id,
+    },
+  });
+
+  return { ...result, allAddTask };
 };
 
 const getTasks = async (query: Record<string, unknown>, options: TPaginationOptions) => {
@@ -177,6 +204,39 @@ const getTasks = async (query: Record<string, unknown>, options: TPaginationOpti
         },
       },
       subCategory: true,
+      addTasks: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          addTasks: true,
+        },
+      },
+      assignTask: {
+        include: {
+          addTask: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  profilePicture: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -207,6 +267,18 @@ const getTaskById = async (id: string) => {
   return await prisma.task.findUniqueOrThrow({
     where: { id },
     include: {
+      addTasks: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+            },
+          },
+        },
+      },
       category: true,
       subCategory: true,
       documents: {
@@ -223,6 +295,28 @@ const getTaskById = async (id: string) => {
           profilePicture: true,
           phoneNumber: true,
           email: true,
+        },
+      },
+      _count: {
+        select: {
+          addTasks: true,
+        },
+      },
+
+      assignTask: {
+        include: {
+          addTask: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  profilePicture: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -275,6 +369,7 @@ const updateTask = async (
           },
         },
       });
+
       const deleteDocumentKeys = deletedDocuments.map((doc) => `nofify/document/${doc.key}`);
       const res = await deleteManyFromS3(deleteDocumentKeys);
       if (res.$metadata.httpStatusCode === 200) {
@@ -292,7 +387,51 @@ const updateTask = async (
 };
 
 const deleteTask = async (user: TTokenUser, id: string) => {
-  return await prisma.task.deleteMany({ where: { id, userId: user.id } });
+  const result = await prisma.$transaction(async (transactionClient) => {
+    const deleteAllAddTasks = await transactionClient.addTasks.deleteMany({
+      where: {
+        taskId: id,
+      },
+    });
+
+    const deleteAllAssignTasks = await transactionClient.assignTask.deleteMany({
+      where: {
+        taskId: id,
+      },
+    });
+
+    const result = await transactionClient.task.delete({ where: { id, userId: user.id } });
+
+    const documents = await transactionClient.file.findMany({
+      where: {
+        taskId: id,
+      },
+    });
+
+    const deleteDocumentKeys = documents.map((doc) => `nofify/document/${doc.key}`);
+    if (deleteDocumentKeys.length > 0) {
+      const res = await deleteManyFromS3(deleteDocumentKeys);
+      if (res.$metadata.httpStatusCode === 200) {
+        await transactionClient.file.deleteMany({
+          where: {
+            taskId: id,
+          },
+        });
+      }
+    }
+
+    return result;
+  });
+};
+
+const addTaskIntoCalendar = async ({ id, googleToken }: { id: string; googleToken: string }) => {
+  try {
+    const task = await prisma.task.findUniqueOrThrow({ where: { id } });
+    const result = await addTaskToGoogleCalendar({ task });
+    return result;
+  } catch (error) {
+    console.log(error, "::::::::::::::::::::::::::::::::::");
+  }
 };
 
 export const TaskServices = {
@@ -302,4 +441,5 @@ export const TaskServices = {
   deleteTask,
   getMyTasks,
   getTaskById,
+  addTaskIntoCalendar,
 };

@@ -20,14 +20,28 @@ const createWithdrawal = async (
     throw new AppError(StatusCodes.BAD_REQUEST, "Insufficient coins");
   }
 
-  const withdrawal = await prisma.withdrawal.create({
-    data: {
-      userId: userData.id,
-      coin: payload.coin,
-      walletAddress: payload.walletAddress,
-    },
-  });
+  const withdrawal = await prisma.$transaction(async (transactionClient) => {
+    const result = await transactionClient.withdrawal.create({
+      data: {
+        userId: userData.id,
+        coin: payload.coin,
+        walletAddress: payload.walletAddress,
+      },
+    });
 
+    // decrease the coins from user
+    await transactionClient.user.update({
+      where: {
+        id: userData.id,
+      },
+      data: {
+        totalCoins: {
+          decrement: payload.coin,
+        },
+      },
+    });
+    return result;
+  });
   // SEND A NOTIFICATION IN ADMIN DASHBOARD
   const admin = await prisma.user.findFirst({ where: { role: USER_ROLE.SUPER_ADMIN } });
 
