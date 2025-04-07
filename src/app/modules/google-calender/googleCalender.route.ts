@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { google } from "googleapis";
 import { oauth2Client } from "../../shared/oauth2Client";
-import auth from "../../middlewares/auth";
 import prisma from "../../shared/prisma";
 import sendResponse from "../../shared/sendResponse";
+import { getAccessTokenFromGoogle } from "../../shared/getAccessTokenFromGoogle";
 
 const router = Router();
 
@@ -29,7 +29,9 @@ router.get("/save-into-calender", async (req, res, next) => {
   try {
     //const { taskId } = req.params;
 
-    const access_token = req.query.access_token as string;
+    const code = req.query.code as string;
+    const access_token = await getAccessTokenFromGoogle({ code });
+    console.log({ access_token });
     const task = await prisma.task.findFirstOrThrow();
 
     const { title, description, date, time, userId } = task;
@@ -39,8 +41,6 @@ router.get("/save-into-calender", async (req, res, next) => {
     const endDateTime = new Date(
       new Date(`${new Date()}`).getTime() + 60 * 60 * 1000,
     ).toISOString();
-
-    console.log({ startDateTime, endDateTime });
 
     oauth2Client.setCredentials({
       access_token,

@@ -50,4 +50,9 @@ export default {
     googleRedirectUrl: process.env.GOOGLE_REDIRECT_URL,
     googleLoginSecret: process.env.GOOGLE_LOGIN_SECRET,
   },
+  calender: {
+    googleClientId: process.env.GOOGLE_CLIENT_ID_CALENDER,
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET_CALENDER,
+    googleRedirectUrl: process.env.GOOGLE_REDIRECT_URL_CALENDER,
+  },
 };
