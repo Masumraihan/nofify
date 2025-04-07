@@ -21,6 +21,7 @@ router.get(
   passport.authenticate("google", { session: false }),
   AuthController.googleCallback,
 );
+router.get("/success", AuthController.success);
 
 router.post(
   "/sign-up",

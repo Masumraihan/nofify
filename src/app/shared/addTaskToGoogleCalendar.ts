@@ -37,9 +37,9 @@ export const addTaskToGoogleCalendar = async ({ task }: { task: Task }) => {
     //}
 
     // Set the access token (assume it's already obtained)
-    oauth2Client.setCredentials({
-      access_token: credentials.access_token,
-    });
+    //oauth2Client.setCredentials({
+    //  access_token: credentials.access_token,
+    //});
 
     // Initialize the Google Calendar API
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
