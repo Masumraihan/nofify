@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import fs from "fs";
 import { StatusCodes } from "http-status-codes";
 import { Secret } from "jsonwebtoken";

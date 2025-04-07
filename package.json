@@ -46,6 +46,7 @@
     "agenda": "^5.0.0",
     "aws-sdk": "^2.1692.0",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dayjs": "^1.11.13",
