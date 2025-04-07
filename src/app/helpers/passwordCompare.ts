@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 const passwordCompare = async (
   plainTextPassword: string,
   hashedPassword: string,
