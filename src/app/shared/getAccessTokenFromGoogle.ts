@@ -1,8 +1,5 @@
 import { oauth2Client } from "./oauth2Client";
 
-// Set the refresh token (must be obtained first)
-
-// Get and set a new access token
 export async function getAccessTokenFromGoogle({ code }: { code: string }) {
   const { tokens } = await oauth2Client.getToken(code);
 
