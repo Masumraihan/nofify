@@ -143,6 +143,9 @@ app.get(
       if (user && "email" in user) {
         const userData = await prisma.user.findFirst({
           where: { email: user?.email as string },
+          include: {
+            validation: true,
+          },
         });
 
         let accessToken = null;
@@ -151,6 +154,17 @@ app.get(
         let id = null;
 
         if (userData) {
+          if (userData?.validation === null || !userData?.validation?.isVerified) {
+            await prisma.validation.create({
+              data: {
+                userId: userData.id,
+                isVerified: true,
+                otp: null,
+                expiresAt: null,
+              },
+            });
+          }
+
           if (userData?.isDelete) {
             throw new AppError(StatusCodes.BAD_REQUEST, "Account is Deleted");
           }
@@ -181,12 +195,23 @@ app.get(
             data: {
               email: user?.email as string,
               role: req.body.role as string,
-              firstName: "",
-              lastName: "",
+              firstName: req.body.displayName?.split(" ")[0] || "",
+              lastName: req.body.displayName?.split(" ")[1] || "",
+              profilePicture: req.body.photos?.length ? req.body.photos[0].value : "",
               phoneNumber: "",
               code: referCode,
             },
           });
+
+          const validation = await prisma.validation.create({
+            data: {
+              userId: newUser.id,
+              otp: null,
+              isVerified: true,
+              expiresAt: null,
+            },
+          });
+
           role = newUser?.role;
           id = newUser.id;
 
