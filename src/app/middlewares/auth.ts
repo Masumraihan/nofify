@@ -55,6 +55,8 @@ const auth: any = (...roles: TUserRole[]) => {
         throw new AppError(StatusCodes.UNAUTHORIZED, "your account is deleted");
       }
 
+      console.log(user.validation,"1111111111111111");
+
       if (!user.validation?.isVerified) {
         throw new AppError(StatusCodes.UNAUTHORIZED, "your account is not verified");
       }
