@@ -109,6 +109,7 @@ passport.use(
     },
   ),
 );
+
 // Routes
 app.get(
   "/api/v1/auth/google",
@@ -152,88 +153,95 @@ app.get(
         let id = null;
 
         if (userData) {
-          await prisma.validation.upsert({
-            where: { userId: userData.id },
-            create: {
-              userId: userData.id,
-              isVerified: true,
-              otp: null,
-              expiresAt: null,
-            },
-            update: {
-              userId: userData.id,
-              isVerified: true,
-              otp: null,
-              expiresAt: null,
-            },
-          });
-
-          if (userData?.isDelete) {
-            throw new AppError(StatusCodes.BAD_REQUEST, "Account is Deleted");
-          }
-
-          if (!userData?.isActive) {
-            throw new AppError(StatusCodes.BAD_REQUEST, "Account is Blocked");
-          }
-
-          const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
-          role = userData.role;
-          id = userData.id;
-          accessToken = createToken(
-            jwtPayload,
-            config.jwt.jwtAccessTokenSecret as string,
-            config.jwt.jwtAccessTokenExpires as string,
-          );
-
-          refreshToken = createToken(
-            jwtPayload,
-            config.jwt.jwtRefreshTokenSecret as string,
-            config.jwt.jwtRefreshTokenExpires as string,
-          );
-        } else {
-          const usersCount = await prisma.user.count({});
-          const referCode = `NOFIFY_${usersCount + 1}`;
-
-          const newUser = await prisma.$transaction(async (tx) => {
-            const newUser = await tx.user.create({
-              data: {
-                email: user?.email as string,
-                role: req.body.role as string,
-                firstName: user?.displayName?.split(" ")[0] || "",
-                lastName: user?.displayName?.split(" ")[1] || "",
-                profilePicture: user?.photos?.length ? user.photos[0].value : "",
-                phoneNumber: "",
-                code: referCode,
-              },
-            });
-
-            await tx.validation.create({
-              data: {
-                userId: newUser.id,
-                otp: null,
+          try {
+            await prisma.validation.upsert({
+              where: { userId: userData.id },
+              create: {
+                userId: userData.id,
                 isVerified: true,
+                otp: null,
+                expiresAt: null,
+              },
+              update: {
+                userId: userData.id,
+                isVerified: true,
+                otp: null,
                 expiresAt: null,
               },
             });
 
-            return newUser;
-          });
+            if (userData?.isDelete) {
+              throw new AppError(StatusCodes.BAD_REQUEST, "Account is Deleted");
+            }
 
-          role = newUser?.role;
-          id = newUser.id;
+            if (!userData?.isActive) {
+              throw new AppError(StatusCodes.BAD_REQUEST, "Account is Blocked");
+            }
 
-          const jwtPayload = { email: newUser.email, role: newUser.role, id: newUser.id };
-          accessToken = createToken(
-            jwtPayload,
-            config.jwt.jwtAccessTokenSecret as string,
-            config.jwt.jwtAccessTokenExpires as string,
-          );
+            const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
+            role = userData.role;
+            id = userData.id;
+            accessToken = createToken(
+              jwtPayload,
+              config.jwt.jwtAccessTokenSecret as string,
+              config.jwt.jwtAccessTokenExpires as string,
+            );
 
-          refreshToken = createToken(
-            jwtPayload,
-            config.jwt.jwtRefreshTokenSecret as string,
-            config.jwt.jwtRefreshTokenExpires as string,
-          );
+            refreshToken = createToken(
+              jwtPayload,
+              config.jwt.jwtRefreshTokenSecret as string,
+              config.jwt.jwtRefreshTokenExpires as string,
+            );
+          } catch (error) {
+            next();
+          }
+        } else {
+          try {
+            const usersCount = await prisma.user.count({});
+            const referCode = `NOFIFY_${usersCount + 1}`;
+            const newUser = await prisma.$transaction(async (tx) => {
+              const newUser = await tx.user.create({
+                data: {
+                  email: user?.email as string,
+                  role: req.body.role as string,
+                  firstName: user?.displayName?.split(" ")[0] || "",
+                  lastName: user?.displayName?.split(" ")[1] || "",
+                  profilePicture: user?.photos?.length ? user.photos[0].value : "",
+                  phoneNumber: "",
+                  code: referCode,
+                },
+              });
+
+              await tx.validation.create({
+                data: {
+                  userId: newUser.id,
+                  otp: null,
+                  isVerified: true,
+                  expiresAt: null,
+                },
+              });
+
+              return newUser;
+            });
+
+            role = newUser?.role;
+            id = newUser.id;
+
+            const jwtPayload = { email: newUser.email, role: newUser.role, id: newUser.id };
+            accessToken = createToken(
+              jwtPayload,
+              config.jwt.jwtAccessTokenSecret as string,
+              config.jwt.jwtAccessTokenExpires as string,
+            );
+
+            refreshToken = createToken(
+              jwtPayload,
+              config.jwt.jwtRefreshTokenSecret as string,
+              config.jwt.jwtRefreshTokenExpires as string,
+            );
+          } catch (error) {
+            next(error);
+          }
         }
 
         res.cookie("accessToken", accessToken, {
