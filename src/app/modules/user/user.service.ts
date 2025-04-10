@@ -170,7 +170,6 @@ const getUser = async (id: string) => {
   return { ...result, referredBy };
 };
 const getUserUsingReferralCode = async (code: string) => {
-  console.log({ code });
   const result = await prisma.user.findFirst({
     where: {
       code,

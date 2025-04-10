@@ -1,27 +1,23 @@
+import { User } from "@prisma/client";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import cron from "node-cron";
+import { CipherKey } from "crypto";
 import express from "express";
+import session from "express-session";
+import { StatusCodes } from "http-status-codes";
 import i18next from "i18next";
 import Backend from "i18next-fs-backend";
 import i18nextMiddleware from "i18next-http-middleware";
+import passport from "passport";
+import GoogleStrategy from "passport-google-oauth20";
+import config from "./app/config";
+import { USER_ROLE } from "./app/enums";
+import AppError from "./app/errors/AppError";
+import { createToken } from "./app/helpers/jwtHelper";
 import globalErrorHandler from "./app/middlewares/globalErrorHandlers";
 import notFoundErrorHandler from "./app/middlewares/notFoundErrorHandler";
 import router from "./app/routes";
-import passport, { use } from "passport";
-import GoogleStrategy from "passport-google-oauth20";
-import session from "express-session";
-import config from "./app/config";
-import sendResponse from "./app/shared/sendResponse";
-import { StatusCodes } from "http-status-codes";
 import prisma from "./app/shared/prisma";
-import AppError from "./app/errors/AppError";
-import { USER_ROLE } from "./app/enums";
-import { createToken } from "./app/helpers/jwtHelper";
-import { executeAlarm } from "./app/modules/alarm/alarm.service";
-import { CipherKey } from "crypto";
-import { User } from "@prisma/client";
-import { oauth2Client } from "./app/shared/oauth2Client";
 const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
@@ -115,7 +111,7 @@ passport.use(
 );
 // Routes
 app.get(
-  "api/v1/auth/google",
+  "/api/v1/auth/google",
   async (req, res, next) => {
     try {
       const role = req.headers.role || USER_ROLE.USER;
@@ -141,12 +137,13 @@ app.get(
   passport.authenticate("google", { session: true }),
   async (req, res, next) => {
     try {
-      const googleAuthorizationCode = req.query.code as string;
-
-      const user = req.user;
+      const user: any = req.user;
       if (user && "email" in user) {
         const userData = await prisma.user.findFirst({
           where: { email: user?.email as string },
+          include: {
+            validation: true,
+          },
         });
 
         let accessToken = null;
@@ -155,6 +152,22 @@ app.get(
         let id = null;
 
         if (userData) {
+          await prisma.validation.upsert({
+            where: { userId: userData.id },
+            create: {
+              userId: userData.id,
+              isVerified: true,
+              otp: null,
+              expiresAt: null,
+            },
+            update: {
+              userId: userData.id,
+              isVerified: true,
+              otp: null,
+              expiresAt: null,
+            },
+          });
+
           if (userData?.isDelete) {
             throw new AppError(StatusCodes.BAD_REQUEST, "Account is Deleted");
           }
@@ -181,16 +194,31 @@ app.get(
           const usersCount = await prisma.user.count({});
           const referCode = `NOFIFY_${usersCount + 1}`;
 
-          const newUser = await prisma.user.create({
-            data: {
-              email: user?.email as string,
-              role: req.body.role as string,
-              firstName: "",
-              lastName: "",
-              phoneNumber: "",
-              code: referCode,
-            },
+          const newUser = await prisma.$transaction(async (tx) => {
+            const newUser = await tx.user.create({
+              data: {
+                email: user?.email as string,
+                role: req.body.role as string,
+                firstName: user?.displayName?.split(" ")[0] || "",
+                lastName: user?.displayName?.split(" ")[1] || "",
+                profilePicture: user?.photos?.length ? user.photos[0].value : "",
+                phoneNumber: "",
+                code: referCode,
+              },
+            });
+
+            await tx.validation.create({
+              data: {
+                userId: newUser.id,
+                otp: null,
+                isVerified: true,
+                expiresAt: null,
+              },
+            });
+
+            return newUser;
           });
+
           role = newUser?.role;
           id = newUser.id;
 
@@ -224,6 +252,8 @@ app.get(
         res.redirect(
           `${config.server_url}/api/v1/auth/success?role=${role}&id=${id}&accessToken=${accessToken}&refreshToken=${refreshToken}`,
         );
+      } else {
+        next();
       }
     } catch (error) {
       next();

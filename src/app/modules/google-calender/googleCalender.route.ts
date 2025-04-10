@@ -1,14 +1,23 @@
 import { Router } from "express";
 import { google } from "googleapis";
+import { StatusCodes } from "http-status-codes";
+import { isDate } from "moment";
+import AppError from "../../errors/AppError";
+import { getAccessTokenFromGoogle } from "../../shared/getAccessTokenFromGoogle";
 import { oauth2Client } from "../../shared/oauth2Client";
-import auth from "../../middlewares/auth";
 import prisma from "../../shared/prisma";
 import sendResponse from "../../shared/sendResponse";
 
 const router = Router();
 
-router.get("/authorization", (req, res, next) => {
+router.get("/authorization", async (req, res, next) => {
   try {
+    const { taskId } = req.query;
+    if (!taskId) {
+      return next(new AppError(StatusCodes.BAD_REQUEST, "Task id is required"));
+    }
+    const task = await prisma.task.findFirstOrThrow({ where: { id: taskId as string } });
+
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: [
@@ -16,9 +25,9 @@ router.get("/authorization", (req, res, next) => {
         "https://www.googleapis.com/auth/calendar",
       ],
       prompt: "consent",
-      //redirect_uri: "http://localhost:2000/api/v1/google-calender/save-into-calender",
+      state: JSON.stringify({ taskId }),
     });
-    console.log({ authUrl });
+
     res.redirect(`${authUrl}`);
   } catch (error) {
     next(error);
@@ -27,20 +36,22 @@ router.get("/authorization", (req, res, next) => {
 
 router.get("/save-into-calender", async (req, res, next) => {
   try {
-    //const { taskId } = req.params;
+    const { state } = req.query;
 
-    const access_token = req.query.access_token as string;
-    const task = await prisma.task.findFirstOrThrow();
+    const taskId = JSON.parse(state as string).taskId;
+
+    const code = req.query.code as string;
+    const access_token = await getAccessTokenFromGoogle({ code });
+    const task = await prisma.task.findFirstOrThrow({ where: { id: taskId as string } });
 
     const { title, description, date, time, userId } = task;
 
-    // Format the date and time into a Google Calendar-compatible format
-    const startDateTime = new Date(`${new Date()}`).toISOString();
-    const endDateTime = new Date(
-      new Date(`${new Date()}`).getTime() + 60 * 60 * 1000,
-    ).toISOString();
+    // check the date, if date is valid date then convert it to date time or if not then convert it to current date
+    const dateTime = isDate(date) ? date : new Date();
 
-    console.log({ startDateTime, endDateTime });
+    // Format the date and time into a Google Calendar-compatible format
+    const startDateTime = new Date(dateTime).toISOString();
+    const endDateTime = new Date(new Date(dateTime).getTime() + 60 * 60 * 1000).toISOString();
 
     oauth2Client.setCredentials({
       access_token,
@@ -65,7 +76,7 @@ router.get("/save-into-calender", async (req, res, next) => {
     const response = await calendar.events.insert({
       calendarId: "primary",
       requestBody: event,
-      sendNotifications: true,
+      //sendNotifications: true,
     });
 
     sendResponse(res, {

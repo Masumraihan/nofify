@@ -65,16 +65,16 @@ export const addTaskToGoogleCalendar = async ({ task }: { task: Task }) => {
     };
 
     // Insert event into the calendar
-    const response: any = await calendar.events.insert({
-      calendarId: "primary", // Can be changed to any calendarId (e.g., 'primary')
-      requestBody: event, // Correctly use `requestBody` instead of `resource`
-      sendNotifications: true,
-      supportsAttachments: true,
-      sendUpdates: "all",
-    });
+    //const response: any = await calendar.events.insert({
+    //  calendarId: "primary", // Can be changed to any calendarId (e.g., 'primary')
+    //  requestBody: event, // Correctly use `requestBody` instead of `resource`
+    //  sendNotifications: true,
+    //  supportsAttachments: true,
+    //  sendUpdates: "all",
+    //});
 
-    console.log("Event created: " + response?.data?.htmlLink); // Link to the created event
-    return response?.data;
+    //console.log("Event created: " + response?.data?.htmlLink); // Link to the created event
+    //return response?.data;
   } catch (error: any) {
     if (
       error.response?.status === 403 &&

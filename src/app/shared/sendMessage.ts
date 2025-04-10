@@ -63,7 +63,6 @@ export const sendTwilioMessage = async ({
       })
       .then((message) => console.log(message.sid));
 
-    console.log(res);
   } catch (error) {
     console.log(error);
     throw error;
