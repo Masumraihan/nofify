@@ -1,16 +1,21 @@
 import { Router } from "express";
 import { google } from "googleapis";
+import { StatusCodes } from "http-status-codes";
+import { isDate } from "moment";
+import AppError from "../../errors/AppError";
 import { getAccessTokenFromGoogle } from "../../shared/getAccessTokenFromGoogle";
 import { oauth2Client } from "../../shared/oauth2Client";
 import prisma from "../../shared/prisma";
 import sendResponse from "../../shared/sendResponse";
-import { isDate } from "moment";
 
 const router = Router();
 
 router.get("/authorization", async (req, res, next) => {
   try {
     const { taskId } = req.query;
+    if (!taskId) {
+      return next(new AppError(StatusCodes.BAD_REQUEST, "Task id is required"));
+    }
     const task = await prisma.task.findFirstOrThrow({ where: { id: taskId as string } });
 
     const authUrl = oauth2Client.generateAuthUrl({

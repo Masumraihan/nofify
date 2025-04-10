@@ -111,7 +111,7 @@ passport.use(
 );
 // Routes
 app.get(
-  "api/v1/auth/google",
+  "/api/v1/auth/google",
   async (req, res, next) => {
     try {
       const role = req.headers.role || USER_ROLE.USER;
@@ -137,9 +137,7 @@ app.get(
   passport.authenticate("google", { session: true }),
   async (req, res, next) => {
     try {
-      const googleAuthorizationCode = req.query.code as string;
-
-      const user = req.user;
+      const user: any = req.user;
       if (user && "email" in user) {
         const userData = await prisma.user.findFirst({
           where: { email: user?.email as string },
@@ -154,16 +152,21 @@ app.get(
         let id = null;
 
         if (userData) {
-          if (userData?.validation === null || !userData?.validation?.isVerified) {
-            await prisma.validation.create({
-              data: {
-                userId: userData.id,
-                isVerified: true,
-                otp: null,
-                expiresAt: null,
-              },
-            });
-          }
+          await prisma.validation.upsert({
+            where: { userId: userData.id },
+            create: {
+              userId: userData.id,
+              isVerified: true,
+              otp: null,
+              expiresAt: null,
+            },
+            update: {
+              userId: userData.id,
+              isVerified: true,
+              otp: null,
+              expiresAt: null,
+            },
+          });
 
           if (userData?.isDelete) {
             throw new AppError(StatusCodes.BAD_REQUEST, "Account is Deleted");
@@ -191,25 +194,29 @@ app.get(
           const usersCount = await prisma.user.count({});
           const referCode = `NOFIFY_${usersCount + 1}`;
 
-          const newUser = await prisma.user.create({
-            data: {
-              email: user?.email as string,
-              role: req.body.role as string,
-              firstName: req.body.displayName?.split(" ")[0] || "",
-              lastName: req.body.displayName?.split(" ")[1] || "",
-              profilePicture: req.body.photos?.length ? req.body.photos[0].value : "",
-              phoneNumber: "",
-              code: referCode,
-            },
-          });
+          const newUser = await prisma.$transaction(async (tx) => {
+            const newUser = await tx.user.create({
+              data: {
+                email: user?.email as string,
+                role: req.body.role as string,
+                firstName: user?.displayName?.split(" ")[0] || "",
+                lastName: user?.displayName?.split(" ")[1] || "",
+                profilePicture: user?.photos?.length ? user.photos[0].value : "",
+                phoneNumber: "",
+                code: referCode,
+              },
+            });
 
-          const validation = await prisma.validation.create({
-            data: {
-              userId: newUser.id,
-              otp: null,
-              isVerified: true,
-              expiresAt: null,
-            },
+            await tx.validation.create({
+              data: {
+                userId: newUser.id,
+                otp: null,
+                isVerified: true,
+                expiresAt: null,
+              },
+            });
+
+            return newUser;
           });
 
           role = newUser?.role;
@@ -245,6 +252,8 @@ app.get(
         res.redirect(
           `${config.server_url}/api/v1/auth/success?role=${role}&id=${id}&accessToken=${accessToken}&refreshToken=${refreshToken}`,
         );
+      } else {
+        next();
       }
     } catch (error) {
       next();
