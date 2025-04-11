@@ -18,6 +18,7 @@ import globalErrorHandler from "./app/middlewares/globalErrorHandlers";
 import notFoundErrorHandler from "./app/middlewares/notFoundErrorHandler";
 import router from "./app/routes";
 import prisma from "./app/shared/prisma";
+import { generateReferCode } from "./app/modules/auth/auth.utils";
 const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
@@ -45,6 +46,7 @@ app.use(
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.json());
+
 i18next.use(Backend).init({
   //debug: true,
   preload: ["en", "es"],
@@ -57,6 +59,7 @@ i18next.use(Backend).init({
     loadPath: __dirname + "/translation/{{lng}}/translation.json",
   },
 });
+
 app.use(i18nextMiddleware.handle(i18next));
 // RUN CRON JOBS EVERY HOUR
 //cron.schedule("0 * * * *", async () => {
@@ -142,9 +145,6 @@ app.get(
       if (user && "email" in user) {
         const userData = await prisma.user.findFirst({
           where: { email: user?.email as string },
-          include: {
-            validation: true,
-          },
         });
 
         let accessToken = null;
@@ -154,22 +154,6 @@ app.get(
 
         if (userData) {
           try {
-            await prisma.validation.upsert({
-              where: { userId: userData.id },
-              create: {
-                userId: userData.id,
-                isVerified: true,
-                otp: null,
-                expiresAt: null,
-              },
-              update: {
-                userId: userData.id,
-                isVerified: true,
-                otp: null,
-                expiresAt: null,
-              },
-            });
-
             if (userData?.isDelete) {
               throw new AppError(StatusCodes.BAD_REQUEST, "Account is Deleted");
             }
@@ -197,27 +181,18 @@ app.get(
           }
         } else {
           try {
-            const usersCount = await prisma.user.count({});
-            const referCode = `NOFIFY_${usersCount + 1}`;
+            const referCode = await generateReferCode();
             const newUser = await prisma.$transaction(async (tx) => {
               const newUser = await tx.user.create({
                 data: {
-                  email: user?.email as string,
-                  role: req.body.role as string,
-                  firstName: user?.displayName?.split(" ")[0] || "",
-                  lastName: user?.displayName?.split(" ")[1] || "",
-                  profilePicture: user?.photos?.length ? user.photos[0].value : "",
+                  role: USER_ROLE.USER,
                   phoneNumber: "",
                   code: referCode,
-                },
-              });
-
-              await tx.validation.create({
-                data: {
-                  userId: newUser.id,
-                  otp: null,
-                  isVerified: true,
-                  expiresAt: null,
+                  profilePicture: user?.photos?.length ? user.photos[0].value : "",
+                  signUpMethod: "GOOGLE",
+                  firstName: user?.displayName?.split(" ")[0] || "",
+                  lastName: user?.displayName?.split(" ")[1] || "",
+                  email: user?.email as string,
                 },
               });
 

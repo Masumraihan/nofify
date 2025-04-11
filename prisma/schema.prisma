@@ -41,6 +41,7 @@ model User {
   updatedAt          DateTime       @updatedAt
   code               String         @unique // my referral code
   referralCode       String? // referral code of the user
+  signUpMethod       String         @default("GOOGLE")
   googleRefreshToken String?
   validation         Validation?
   notifications      Notification[]

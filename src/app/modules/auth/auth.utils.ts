@@ -6,9 +6,10 @@ export const generateReferCode = async () => {
       createdAt: "desc",
     },
   });
+  console.log(lastUser);
   if (lastUser) {
     const codeLastNumber = lastUser.code.split("-")[1];
-
+    console.log("codeLastNumber", codeLastNumber);
     const code = `NOFIFY-${Number(codeLastNumber) + 1 || 1}`;
     return code;
   } else {

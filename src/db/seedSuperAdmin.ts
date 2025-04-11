@@ -36,6 +36,7 @@ const seedSuperAdmin = async () => {
             isDelete: false,
             isActive: true,
             code: `NOFIFY-001`,
+            signUpMethod: "EMAIL",
           },
         });
         await transactionClient.validation.create({

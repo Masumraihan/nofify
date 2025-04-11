@@ -1,18 +1,17 @@
 import { Router } from "express";
-import auth from "../../middlewares/auth";
 import multer, { memoryStorage } from "multer";
 import { uploadManyToS3 } from "../../constant/s3";
-import { createId } from "@paralleldrive/cuid2";
-import { TaskValidation } from "./task.validation";
+import auth from "../../middlewares/auth";
 import { TaskController } from "./task.controller";
+import { TaskValidation } from "./task.validation";
 const storage = memoryStorage();
 const upload = multer({ storage });
 
 const router = Router();
+
 router.get("/tasks", auth("SUPER_ADMIN", "USER"), TaskController.getTasks);
 router.get("/my-tasks", auth("USER"), TaskController.getMyTasks);
 router.get("/:id", auth("SUPER_ADMIN", "USER"), TaskController.getTaskById);
-
 router.post(
   "/create",
   auth("USER"),
@@ -110,7 +109,6 @@ router.patch(
   },
   TaskController.updateTask,
 );
-
+router.delete("/delete-add-task/:id", auth("USER"), TaskController.deleteAddTask);
 router.delete("/delete/:id", auth("USER"), TaskController.deleteTask);
-
 export const TaskRoutes = router;

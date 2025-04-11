@@ -424,6 +424,10 @@ const deleteTask = async (user: TTokenUser, id: string) => {
   });
 };
 
+const deleteAddTask = async (user: TTokenUser, id: string) => {
+  return await prisma.addTasks.deleteMany({ where: { id, task: { userId: user.id } } });
+};
+
 const addTaskIntoCalendar = async ({ id, googleToken }: { id: string; googleToken: string }) => {
   try {
     const task = await prisma.task.findUniqueOrThrow({ where: { id } });
@@ -431,6 +435,7 @@ const addTaskIntoCalendar = async ({ id, googleToken }: { id: string; googleToke
     return result;
   } catch (error) {
     console.log(error, "::::::::::::::::::::::::::::::::::");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Got an error while adding task into calendar");
   }
 };
 
@@ -442,4 +447,5 @@ export const TaskServices = {
   getMyTasks,
   getTaskById,
   addTaskIntoCalendar,
+  deleteAddTask,
 };

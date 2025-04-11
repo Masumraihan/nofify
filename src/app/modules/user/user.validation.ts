@@ -23,6 +23,7 @@ export const updateProfileValidationSchema = z
     address: z.string().optional(),
     city: z.string().optional(),
     phoneNumber: z.string().optional(),
+    fcmToken: z.string().optional(),
   })
   .strict();
 

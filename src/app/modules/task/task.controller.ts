@@ -95,6 +95,18 @@ const addTaskIntoCalendar = catchAsync(async (req, res) => {
   });
 });
 
+
+const deleteAddTask = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await TaskServices.deleteAddTask(user, req.params.id);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Task deleted successfully",
+    data: result,
+  });
+});
+
 export const TaskController = {
   createTask,
   getTasks,
@@ -103,4 +115,5 @@ export const TaskController = {
   getMyTasks,
   getTaskById,
   addTaskIntoCalendar,
+  deleteAddTask
 };

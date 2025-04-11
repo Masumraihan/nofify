@@ -47,6 +47,7 @@ const signUpIntoDb = async (payload: any) => {
         fullName: payload.firstName + " " + payload.lastName,
         password: hashedPassword,
         code,
+        signUpMethod: "EMAIL",
       },
     });
 
@@ -83,43 +84,6 @@ const signUpIntoDb = async (payload: any) => {
 
     if (!user || !validation) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Failed to create user");
-    }
-
-    if (payload.referralCode) {
-      const referUser = await transactionClient.user.findFirst({
-        where: {
-          code: payload?.referralCode,
-        },
-      });
-
-      if (!referUser) {
-        throw new AppError(StatusCodes.BAD_REQUEST, "Invalid Referral Code");
-      }
-
-      // ADD 200 COIN TO BOTH USER
-      if (referUser) {
-        await transactionClient.user.update({
-          where: {
-            id: referUser.id,
-          },
-          data: {
-            totalCoins: {
-              increment: 200,
-            },
-          },
-        });
-
-        await transactionClient.user.update({
-          where: {
-            id: user.id,
-          },
-          data: {
-            totalCoins: {
-              increment: 200,
-            },
-          },
-        });
-      }
     }
 
     const parentMailTemplate = path.join(process.cwd(), "/src/template/verify.html");
@@ -175,10 +139,11 @@ const googleCallback = async (user: TTokenUser) => {
       data: {
         email: user?.email as string,
         role: user.role as string,
-        firstName: "",
-        lastName: "",
+        firstName: user?.displayName?.split(" ")[0] || "",
+        lastName: user?.displayName?.split(" ")[1] || "",
         phoneNumber: "",
         code,
+        signUpMethod: "GOOGLE",
       },
     });
 

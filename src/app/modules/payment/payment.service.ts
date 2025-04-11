@@ -60,6 +60,8 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
       },
     });
 
+    const userData = paymentData.user;
+
     // ACTIVE SUBSCRIPTION AND SET RENEWAL DATE
 
     await transactionClient.subscription.update({
@@ -73,7 +75,7 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
 
     await transactionClient.user.update({
       where: {
-        id: paymentData.user.id,
+        id: userData.id,
       },
       data: {
         totalCoins: {
@@ -81,6 +83,28 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
         },
       },
     });
+
+    if (userData.referralCode) {
+      const referUser = await transactionClient.user.findFirst({
+        where: {
+          code: userData?.referralCode,
+        },
+      });
+
+      // ADD 200 COIN TO BOTH USER
+      if (referUser) {
+        await transactionClient.user.update({
+          where: {
+            id: referUser.id,
+          },
+          data: {
+            totalCoins: {
+              increment: 200,
+            },
+          },
+        });
+      }
+    }
 
     return paymentData;
   });
