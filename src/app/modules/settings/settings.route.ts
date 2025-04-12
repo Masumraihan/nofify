@@ -5,7 +5,11 @@ import validateRequest from "../../middlewares/validateRequest";
 import { SettingsValidations } from "./settings.validation";
 
 const router = Router();
-router.get("/task-remainder-minutes", SettingsControllers.getTaskRemainderMinutes);
+router.get(
+  "/task-remainder-minutes",
+  auth("SUPER_ADMIN", "USER"),
+  SettingsControllers.getTaskRemainderMinutes,
+);
 router.get("/:label", SettingsControllers.getSettings);
 router.post(
   "/create",
