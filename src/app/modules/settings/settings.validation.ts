@@ -18,7 +18,19 @@ const updateSettingsValidation = z.object({
     .strict(),
 });
 
+const updateTaskRemainderMinutesValidation = z.object({
+  body: z
+    .object({
+      label: z.string({ required_error: "label is required" }),
+      value: z
+        .number({ required_error: "minutes is required" })
+        .positive({ message: "minutes must be positive" }),
+    })
+    .strict(),
+});
+
 export const SettingsValidations = {
   createSettingsValidation,
   updateSettingsValidation,
+  updateTaskRemainderMinutesValidation,
 };
