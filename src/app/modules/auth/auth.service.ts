@@ -31,7 +31,7 @@ const signUpIntoDb = async (payload: any) => {
   });
 
   if (isMobileNumberExist) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "User already exist with this mobile number");
+    throw new AppError(StatusCodes.BAD_REQUEST, "Input valid phone number");
   }
 
   const code = await generateReferCode();

@@ -43,6 +43,8 @@ const createTask = async (
 
   const { subCategory: subC, category: c, documents, userIds, ...data } = payload;
 
+  console.log({ data });
+
   let category;
   let subCategory;
 

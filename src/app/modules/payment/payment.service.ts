@@ -103,6 +103,17 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
             },
           },
         });
+
+        await transactionClient.user.update({
+          where: {
+            id: userData.id,
+          },
+          data: {
+            totalCoins: {
+              increment: 200,
+            },
+          },
+        });
       }
     }
 

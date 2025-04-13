@@ -19,12 +19,10 @@ export const signUpValidation = z
       .string()
       .url({ message: "Invalid URL for profile picture. Please provide a valid URL." })
       .optional(),
-    phoneNumber: z
-      .string()
-      //.regex(/^\+?[1-9]\d{1,14}$/, {
-      //  message: "Phone number must be in international format and up to 15 digits long",
-      //})
-      .optional(),
+    phoneNumber: z.string({ required_error: "Phone number is required" }).trim(),
+    //.regex(/^\+?[1-9]\d{1,14}$/, {
+    //  message: "Phone number must be in international format and up to 15 digits long",
+    //})
     documents: z.array(document).optional(),
     password: z.string({ required_error: "Password is required" }),
     code: z.string().optional(),
@@ -87,7 +85,7 @@ const optValidation = z.object({
     })
     .strict(),
 });
-  
+
 const resendOtpValidation = z.object({
   body: z
     .object({
