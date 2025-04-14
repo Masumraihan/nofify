@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { USER_ROLE } from "../app/enums";
 import prisma from "../app/shared/prisma";
 import config from "../app/config";

@@ -262,6 +262,15 @@ const uploadImage = async (file: Express.Multer.File) => {
   };
 };
 
+const checkUserExist = async (payload: { email: string; phoneNumber: string }) => {
+  const result = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: payload.email }, { phoneNumber: payload.phoneNumber }],
+    },
+  });
+  return result ? true : false;
+};
+
 export const UserServices = {
   uploadImage,
   getUsers,
@@ -272,4 +281,5 @@ export const UserServices = {
   updateMyProfile,
   deleteMyProfile,
   getUserUsingReferralCode,
+  checkUserExist,
 };
