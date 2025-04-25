@@ -6,6 +6,8 @@ import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
 import { TPaginationOptions } from "../../types/pagination";
 import { userSearchableFields } from "./user.constant";
+import AppError from "../../errors/AppError";
+import { StatusCodes } from "http-status-codes";
 
 const getUsers = async (
   user: TTokenUser,
@@ -222,6 +224,19 @@ const getMyProfile = async (user: TTokenUser) => {
 
 const updateMyProfile = async (user: TTokenUser, payload: Prisma.UserUpdateInput) => {
   const result = await prisma.$transaction(async (transactionClient) => {
+    if (payload.phoneNumber) {
+      const isAlreadyExist = await prisma.user.findFirst({
+        where: {
+          phoneNumber: payload?.phoneNumber as string,
+          isDelete: false,
+        },
+      });
+
+      if (isAlreadyExist) {
+        throw new AppError(StatusCodes.BAD_REQUEST, "Phone number already exist");
+      }
+    }
+
     const result = await transactionClient.user.update({
       where: {
         id: user.id,
