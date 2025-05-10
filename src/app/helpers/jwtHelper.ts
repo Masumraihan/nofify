@@ -4,15 +4,15 @@ import AppError from "../errors/AppError";
 
 export const createToken = (
   jwtPayload: { email: string; role: string; id: string },
-  secret: Secret,
-  expiresIn: string,
+  secret: any,
+  expiresIn: any,
 ) => {
   return jwt.sign(jwtPayload, secret, {
     expiresIn,
   });
 };
 
-export const verifyToken = (token: string, secret: Secret) => {
+export const verifyToken = (token: string, secret: string) => {
   try {
     return jwt.verify(token, secret) as JwtPayload;
   } catch (error: any) {

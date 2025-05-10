@@ -167,17 +167,21 @@ app.get(
             const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
             role = userData.role;
             id = userData.id;
-            accessToken = createToken(
-              jwtPayload,
-              config.jwt.jwtAccessTokenSecret as string,
-              config.jwt.jwtAccessTokenExpires as string,
-            );
+            if (config.jwt.jwtAccessTokenSecret) {
+              accessToken = createToken(
+                jwtPayload,
+                config.jwt.jwtAccessTokenSecret as string,
+                config.jwt.jwtAccessTokenExpires as string,
+              );
+            }
 
-            refreshToken = createToken(
-              jwtPayload,
-              config.jwt.jwtRefreshTokenSecret as string,
-              config.jwt.jwtRefreshTokenExpires as string,
-            );
+            if (config.jwt.jwtRefreshTokenSecret) {
+              refreshToken = createToken(
+                jwtPayload,
+                config.jwt.jwtRefreshTokenSecret as string,
+                config.jwt.jwtRefreshTokenExpires as string,
+              );
+            }
           } catch (error) {
             next();
           }
@@ -205,17 +209,21 @@ app.get(
             id = newUser.id;
 
             const jwtPayload = { email: newUser.email, role: newUser.role, id: newUser.id };
-            accessToken = createToken(
-              jwtPayload,
-              config.jwt.jwtAccessTokenSecret as string,
-              config.jwt.jwtAccessTokenExpires as string,
-            );
+            if (config.jwt.jwtAccessTokenSecret) {
+              accessToken = createToken(
+                jwtPayload,
+                config.jwt.jwtAccessTokenSecret as string,
+                config.jwt.jwtAccessTokenExpires as string,
+              );
+            }
 
-            refreshToken = createToken(
-              jwtPayload,
-              config.jwt.jwtRefreshTokenSecret as string,
-              config.jwt.jwtRefreshTokenExpires as string,
-            );
+            if (config.jwt.jwtRefreshTokenSecret) {
+              refreshToken = createToken(
+                jwtPayload,
+                config.jwt.jwtRefreshTokenSecret as string,
+                config.jwt.jwtRefreshTokenExpires as string,
+              );
+            }
           } catch (error) {
             next(error);
           }

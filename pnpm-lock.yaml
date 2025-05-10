@@ -114,8 +114,8 @@ importers:
         specifier: ^4.8.1
         version: 4.8.1
       stripe:
-        specifier: ^17.3.1
-        version: 17.4.0
+        specifier: ^18.1.0
+        version: 18.1.0(@types/node@22.10.2)
       twilio:
         specifier: ^5.4.0
         version: 5.4.0
@@ -2571,9 +2571,14 @@ packages:
     resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
     engines: {node: '>=0.10.0'}
 
-  stripe@17.4.0:
-    resolution: {integrity: sha512-sQQGZguPxe7/QYXJKtDpfzT2OAH9F8nyE2SOsVdTU793iiU33/dpaKgWaJEGJm8396Yy/6NvTLblgdHlueGLhA==}
+  stripe@18.1.0:
+    resolution: {integrity: sha512-MLDiniPTHqcfIT3anyBPmOEcaiDhYa7/jRaNypQ3Rt2SJnayQZBvVbFghIziUCZdltGAndm/ZxVOSw6uuSCDig==}
     engines: {node: '>=12.*'}
+    peerDependencies:
+      '@types/node': '>=12.x.x'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
 
   strnum@1.0.5:
     resolution: {integrity: sha512-J8bbNyKKXl5qYcR36TIO8W3mVGVHrmmxsd5PAItGkmyzwJvybiw2IVq5nqd0i4LSNSkB/sx9VHllbfFdr9k1JA==}
@@ -6734,10 +6739,11 @@ snapshots:
 
   strip-json-comments@2.0.1: {}
 
-  stripe@17.4.0:
+  stripe@18.1.0(@types/node@22.10.2):
     dependencies:
-      '@types/node': 22.10.2
       qs: 6.13.1
+    optionalDependencies:
+      '@types/node': 22.10.2
 
   strnum@1.0.5: {}
 

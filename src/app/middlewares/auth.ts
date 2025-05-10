@@ -24,7 +24,7 @@ const auth: any = (...roles: TUserRole[]) => {
 
       const decodedData = verifyToken(
         token,
-        config.jwt.jwtAccessTokenSecret as Secret,
+        config.jwt.jwtAccessTokenSecret as string,
       ) as TTokenUser;
       if (!decodedData) {
         throw new AppError(StatusCodes.UNAUTHORIZED, "you are not authorized");

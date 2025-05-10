@@ -57,11 +57,22 @@ const signUpIntoDb = async (payload: any) => {
       id: user.id,
     };
 
-    const token = createToken(
-      jwtPayload,
-      config.jwt.jwtVerifyAccountSecret as Secret,
-      config.jwt.jwtVerifyAccountExpires as string,
-    );
+    let token;
+    if (config.jwt.jwtVerifyAccountSecret) {
+      token = createToken(
+        jwtPayload,
+        config.jwt.jwtVerifyAccountSecret as string,
+        config.jwt.jwtVerifyAccountExpires as string,
+      );
+    }
+
+    if (config.jwt.jwtVerifyAccountSecret) {
+      token = createToken(
+        jwtPayload,
+        config.jwt.jwtVerifyAccountSecret as string,
+        config.jwt.jwtVerifyAccountExpires as string,
+      );
+    }
 
     //  SEND EMAIL FOR VERIFICATION
     const otp = Math.floor(100000 + Math.random() * 900000);
@@ -121,17 +132,21 @@ const googleCallback = async (user: TTokenUser) => {
     }
 
     const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
-    accessToken = createToken(
-      jwtPayload,
-      config.jwt.jwtAccessTokenSecret as string,
-      config.jwt.jwtAccessTokenExpires as string,
-    );
+    if (config.jwt.jwtAccessTokenSecret) {
+      accessToken = createToken(
+        jwtPayload,
+        config.jwt.jwtAccessTokenSecret as string,
+        config.jwt.jwtAccessTokenExpires as string,
+      );
+    }
 
-    refreshToken = createToken(
-      jwtPayload,
-      config.jwt.jwtRefreshTokenSecret as string,
-      config.jwt.jwtRefreshTokenExpires as string,
-    );
+    if (config.jwt.jwtRefreshTokenSecret) {
+      refreshToken = createToken(
+        jwtPayload,
+        config.jwt.jwtRefreshTokenSecret as string,
+        config.jwt.jwtRefreshTokenExpires as string,
+      );
+    }
   } else {
     const code = await generateReferCode();
 
@@ -148,17 +163,21 @@ const googleCallback = async (user: TTokenUser) => {
     });
 
     const jwtPayload = { email: newUser.email, role: newUser.role, id: newUser.id };
-    accessToken = createToken(
-      jwtPayload,
-      config.jwt.jwtAccessTokenSecret as string,
-      config.jwt.jwtAccessTokenExpires as string,
-    );
+    if (config.jwt.jwtAccessTokenSecret) {
+      accessToken = createToken(
+        jwtPayload,
+        config.jwt.jwtAccessTokenSecret as string,
+        config.jwt.jwtAccessTokenExpires as string,
+      );
+    }
 
-    refreshToken = createToken(
-      jwtPayload,
-      config.jwt.jwtRefreshTokenSecret as string,
-      config.jwt.jwtRefreshTokenExpires as string,
-    );
+    if (config.jwt.jwtRefreshTokenSecret) {
+      refreshToken = createToken(
+        jwtPayload,
+        config.jwt.jwtRefreshTokenSecret as string,
+        config.jwt.jwtRefreshTokenExpires as string,
+      );
+    }
   }
 
   return { accessToken, refreshToken, role: userData?.role, id: userData?.id };
@@ -168,7 +187,10 @@ const verifyAccount = async (token: string, payload: { otp: number }) => {
     throw new AppError(StatusCodes.BAD_REQUEST, "Please provide your token");
   }
 
-  const decode = verifyToken(token, config.jwt.jwtVerifyAccountSecret as Secret);
+  let decode;
+  if (verifyToken(token, config.jwt.jwtVerifyAccountSecret as string)) {
+    decode = verifyToken(token, config.jwt.jwtVerifyAccountSecret as string);
+  }
   if (!decode) {
     throw new AppError(StatusCodes.BAD_REQUEST, "Invalid Token");
   }
@@ -225,17 +247,24 @@ const verifyAccount = async (token: string, payload: { otp: number }) => {
   }
 
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.jwtAccessTokenSecret as string,
-    config.jwt.jwtAccessTokenExpires as string,
-  );
 
-  const refreshToken = createToken(
-    jwtPayload,
-    config.jwt.jwtRefreshTokenSecret as string,
-    config.jwt.jwtRefreshTokenExpires as string,
-  );
+  let accessToken;
+  if (config.jwt.jwtAccessTokenSecret) {
+    accessToken = createToken(
+      jwtPayload,
+      config.jwt.jwtAccessTokenSecret as string,
+      config.jwt.jwtAccessTokenExpires as string,
+    );
+  }
+
+  let refreshToken;
+  if (config.jwt.jwtRefreshTokenSecret) {
+    refreshToken = createToken(
+      jwtPayload,
+      config.jwt.jwtRefreshTokenSecret as string,
+      config.jwt.jwtRefreshTokenExpires as string,
+    );
+  }
 
   return {
     accessToken,
@@ -295,11 +324,15 @@ const resendOtp = async (payload: { email?: string; phoneNumber?: string; type?:
     // after send verification email put the otp into db
   }
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id.toString() };
-  const token = createToken(
-    jwtPayload,
-    config.jwt.jwtVerifyAccountSecret as string,
-    config.jwt.jwtVerifyAccountExpires as string,
-  );
+
+  let token;
+  if (config.jwt.jwtVerifyAccountSecret) {
+    token = createToken(
+      jwtPayload,
+      config.jwt.jwtVerifyAccountSecret as string,
+      config.jwt.jwtVerifyAccountExpires as string,
+    );
+  }
 
   return {
     token,
@@ -355,17 +388,23 @@ const signInIntoDb = async (payload: {
   }
 
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.jwtAccessTokenSecret as string,
-    config.jwt.jwtAccessTokenExpires as string,
-  );
+  let accessToken;
+  if (config.jwt.jwtAccessTokenSecret) {
+    accessToken = createToken(
+      jwtPayload,
+      config.jwt.jwtAccessTokenSecret as string,
+      config.jwt.jwtAccessTokenExpires as string,
+    );
+  }
 
-  const refreshToken = createToken(
-    jwtPayload,
-    config.jwt.jwtRefreshTokenSecret as string,
-    config.jwt.jwtRefreshTokenExpires as string,
-  );
+  let refreshToken;
+  if (config.jwt.jwtRefreshTokenSecret) {
+    refreshToken = createToken(
+      jwtPayload,
+      config.jwt.jwtRefreshTokenSecret as string,
+      config.jwt.jwtRefreshTokenExpires as string,
+    );
+  }
 
   return {
     accessToken,
@@ -376,7 +415,7 @@ const signInIntoDb = async (payload: {
 };
 
 const refreshToken = async (refreshToken: string) => {
-  const payload = verifyToken(refreshToken, config.jwt.jwtRefreshTokenSecret as Secret);
+  const payload = verifyToken(refreshToken, config.jwt.jwtRefreshTokenSecret as string);
   const userData = await prisma.user.findUniqueOrThrow({
     where: { id: payload.id, email: payload.email, isDelete: false },
   });
@@ -401,11 +440,14 @@ const refreshToken = async (refreshToken: string) => {
   }
 
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.jwtAccessTokenSecret as string,
-    config.jwt.jwtAccessTokenExpires as string,
-  );
+  let accessToken;
+  if (config.jwt.jwtAccessTokenSecret) {
+    accessToken = createToken(
+      jwtPayload,
+      config.jwt.jwtAccessTokenSecret as string,
+      config.jwt.jwtAccessTokenExpires as string,
+    );
+  }
 
   return {
     accessToken,
@@ -489,11 +531,15 @@ const forgetPasswordIntoDb = async (payload: {
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id.toString() };
   // generate token
   const expiresAt = moment(currentTime).add(60, "minute");
-  const token = createToken(
-    jwtPayload,
-    config.jwt.jwtVerifyAccountSecret as Secret,
-    config.jwt.jwtVerifyAccountExpires as string,
-  );
+
+  let token;
+  if (config.jwt.jwtVerifyAccountSecret) {
+    token = createToken(
+      jwtPayload,
+      config.jwt.jwtVerifyAccountSecret as string,
+      config.jwt.jwtVerifyAccountExpires as string,
+    );
+  }
 
   //  find user and update validation
   await prisma.validation.update({
@@ -540,8 +586,8 @@ const resetPassword = async (
   const decode = verifyToken(
     token,
     token_type === "access_token"
-      ? (config.jwt.jwtAccessTokenSecret as Secret)
-      : (config.jwt.jwtVerifyAccountSecret as Secret),
+      ? (config.jwt.jwtAccessTokenSecret as string)
+      : (config.jwt.jwtVerifyAccountSecret as string),
   ) as TTokenUser;
   const userData = await prisma.user.findUniqueOrThrow({
     where: { email: decode.email, id: decode.id, isDelete: false },
@@ -578,17 +624,26 @@ const resetPassword = async (
   });
 
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id };
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.jwtAccessTokenSecret as string,
-    config.jwt.jwtAccessTokenExpires as string,
-  );
 
-  const refreshToken = createToken(
-    jwtPayload,
-    config.jwt.jwtRefreshTokenSecret as string,
-    config.jwt.jwtRefreshTokenExpires as string,
-  );
+  let accessToken;
+
+  if (config.jwt.jwtAccessTokenSecret) {
+    accessToken = createToken(
+      jwtPayload,
+      config.jwt.jwtAccessTokenSecret as string,
+      config.jwt.jwtAccessTokenExpires as string,
+    );
+  }
+
+  let refreshToken;
+
+  if (config.jwt.jwtRefreshTokenSecret) {
+    refreshToken = createToken(
+      jwtPayload,
+      config.jwt.jwtRefreshTokenSecret as string,
+      config.jwt.jwtRefreshTokenExpires as string,
+    );
+  }
 
   return {
     accessToken,
