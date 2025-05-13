@@ -51,10 +51,12 @@ const getSubscription = catchAsync(async (req, res) => {
 
 //* THIS IS FOR APP, WHEN SUBSCRIPTION SUCCESS IS REDIRECT TO THIS ENDPOINT
 const success = catchAsync(async (req, res) => {
+  const successFromParams = req.query?.success;
+
   sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: "Payment success",
+    statusCode: successFromParams === "false" ? StatusCodes.BAD_REQUEST : StatusCodes.OK,
+    success: successFromParams === "false" ? false : true,
+    message: successFromParams === "false" ? "Payment failed" : "Payment success",
     data: {},
   });
 });

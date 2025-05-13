@@ -60,7 +60,7 @@ const createSubscription = async (user: TTokenUser, payload: { packageId: string
         },
         query: { subscriptionId: subscription.id, transactionId: transactionId },
         webHookUrl: config.payment.webHookUrl as string,
-        cancelUrl: config.payment.paymentCancelUrl as string,
+        cancelUrl: `${config.server_url}/api/v1/subscription/success?success=false`,
       });
     }
 

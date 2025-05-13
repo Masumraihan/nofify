@@ -1,36 +1,35 @@
 # Stage 1: Build
-FROM node:22 AS builder
+FROM node:current-slim AS builder
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY prisma ./prisma
-COPY public ./public
+COPY prisma ./
+COPY public ./
+
+# Use npm ci for clean, repeatable builds
 RUN npm install
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client and build project
 RUN npm run build && npm run postinstall
 
 # Stage 2: Production
-FROM node:22-slim
+FROM node:current-slim
 
 WORKDIR /app
 
-
-# ✅ Install OpenSSL 3
+# Install only necessary system packages securely
 RUN apt-get update && \
-    apt-get install -y libssl3 ca-certificates && \
+    apt-get install -y --no-install-recommends libssl3 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy only the necessary artifacts from the builder
+# Copy necessary build artifacts
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/prisma ./prisma
 
-# Expose your app port
 EXPOSE 2000
 
-# Start the app
 CMD ["node", "dist/server.js"]

@@ -1,7 +1,7 @@
 import admin from "firebase-admin";
 import { StatusCodes } from "http-status-codes";
 import AppError from "../errors/AppError";
-import file from "../../../public/firebase.json";
+import file from "../firebase/firebase.json";
 import prisma from "../shared/prisma";
 
 admin.initializeApp({
