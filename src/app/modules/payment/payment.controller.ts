@@ -77,7 +77,7 @@ const updateSubscriptionVerifyPaymentWithWebhook = catchAsync(async (req, res) =
     );
 
   if (payment_id && session_id) {
-    res.redirect(`${config.payment.paymentSuccessUrl}?paymentId=${payment_id}`);
+    res.redirect(`${config.server_url}/api/v1/subscription/success`);
   } else {
     throw new AppError(StatusCodes.BAD_REQUEST, "Failed to Verify Payment");
   }
