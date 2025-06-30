@@ -151,8 +151,10 @@ const deleteCategory = async (id: string) => {
   return result;
 };
 
-const deleteSubCategory = async (id: string) => {
-  const result = await prisma.subCategory.delete({ where: { id } });
+const deleteSubCategory = async (user: TTokenUser, id: string) => {
+  const result = await prisma.subCategory.delete({
+    where: user.role === USER_ROLE.SUPER_ADMIN ? { id } : { id, userId: user.id },
+  });
   return result;
 };
 

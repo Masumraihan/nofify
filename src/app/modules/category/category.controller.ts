@@ -107,7 +107,8 @@ const deleteCategory = catchAsync(async (req, res) => {
 });
 
 const deleteSubCategory = catchAsync(async (req, res) => {
-  const result = await CategoryService.deleteSubCategory(req.params.id);
+  const user = (req as CustomRequest).user;
+  const result = await CategoryService.deleteSubCategory(user, req.params.id);
   sendResponse(res, {
     statusCode: 200,
     success: true,
