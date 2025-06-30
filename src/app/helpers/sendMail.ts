@@ -11,9 +11,9 @@ type TEmail = {
 export const sendMail = async ({ to, html, subject }: TEmail) => {
   const transporter = nodemailer.createTransport({
     //@ts-ignore
-    host: "smtp.gmail.com",
-    port: config.email.port,
-    secure: config.nodeEnv !== "development",
+    host: "smtp.mail.us-east-1.awsapps.com",
+    port: 465,
+    secure: true,
     auth: {
       user: config.email.user,
       pass: config.email.pass,

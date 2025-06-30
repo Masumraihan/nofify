@@ -3,6 +3,8 @@ import { paginationHelper } from "../../helpers/paginationHelper";
 import prisma from "../../shared/prisma";
 import { TPaginationOptions } from "../../types/pagination";
 import { categorySearchableFields } from "./category.constant";
+import { TTokenUser } from "../../types/common";
+import { USER_ROLE } from "../../enums";
 
 const createCategory = async (data: Prisma.CategoryCreateInput) => {
   const result = await prisma.category.create({ data });
@@ -68,6 +70,14 @@ const getAllCategory = async (query: Record<string, unknown>, options: TPaginati
   };
 };
 
+const getMyCategories = async (user: TTokenUser) => {
+  const admin = await prisma.user.findFirst({ where: { role: USER_ROLE.SUPER_ADMIN } });
+  return await prisma.category.findMany({
+    where: { OR: [{ userId: user.id }, { userId: admin?.id }] },
+    include: { subCategories: true },
+  });
+};
+
 const getAllSubCategory = async (query: Record<string, unknown>, options: TPaginationOptions) => {
   const AndConditions: Prisma.SubCategoryWhereInput[] = [];
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
@@ -124,6 +134,14 @@ const getAllSubCategory = async (query: Record<string, unknown>, options: TPagin
   };
 };
 
+const getMySubCategories = async (user: TTokenUser) => {
+  const admin = await prisma.user.findFirst({ where: { role: USER_ROLE.SUPER_ADMIN } });
+  return await prisma.subCategory.findMany({
+    where: { OR: [{ userId: user.id }, { userId: admin?.id }] },
+    include: { category: true },
+  });
+};
+
 const deleteCategory = async (id: string) => {
   const result = await prisma.$transaction(async (transactionClient) => {
     const result = await transactionClient.category.delete({ where: { id } });
@@ -147,4 +165,6 @@ export const CategoryService = {
   getAllSubCategory,
   deleteCategory,
   deleteSubCategory,
+  getMyCategories,
+  getMySubCategories,
 };

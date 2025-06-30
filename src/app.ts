@@ -19,6 +19,7 @@ import notFoundErrorHandler from "./app/middlewares/notFoundErrorHandler";
 import router from "./app/routes";
 import prisma from "./app/shared/prisma";
 import { generateReferCode } from "./app/modules/auth/auth.utils";
+import { getSecret } from "./app/constant/secretManager";
 const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
@@ -49,6 +50,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.json());
 
+const getSecrets = async () => {
+  try {
+    const secret = await getSecret("nof_app");
+    const data = JSON.parse(secret as string);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+getSecrets();
+
 i18next.use(Backend).init({
   //debug: true,
   preload: ["en", "es"],
@@ -63,6 +75,7 @@ i18next.use(Backend).init({
 });
 
 app.use(i18nextMiddleware.handle(i18next));
+
 // RUN CRON JOBS EVERY HOUR
 //cron.schedule("0 * * * *", async () => {
 //  const result = await executeAlarm();
@@ -256,6 +269,10 @@ app.get(
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello from server" });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ message: "The server is heathy" });
 });
 
 app.use("/api/v1", router);

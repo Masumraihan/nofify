@@ -41,7 +41,7 @@ router.post(
               100000 + Math.random() * 900000 + new Date().getTime(),
             )}`,
           })
-        : null;
+        : "";
 
       // Upload documents if available
       const documents = files?.["documents"]?.length
@@ -51,7 +51,7 @@ router.post(
                 const key = `nofify/docments/${Math.floor(
                   100000 + Math.random() * 900000 + new Date().getTime(),
                 )}`;
-             
+
                 return {
                   file,
                   key,

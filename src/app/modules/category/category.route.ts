@@ -5,7 +5,11 @@ import { CategoryControllers } from "./category.controller";
 const router = Router();
 
 router.get("/categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllCategory);
+router.get("/my-categories", auth("USER"), CategoryControllers.getMyCategories);
+
 router.get("/sub-categories", auth("USER", "SUPER_ADMIN"), CategoryControllers.getAllSubCategory);
+router.get("/my-sub-categories", auth("USER"), CategoryControllers.getMySubCategories);
+
 router.post("/create", auth("SUPER_ADMIN", "USER"), CategoryControllers.createCategory);
 router.post(
   "/create-sub-category",

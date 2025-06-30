@@ -56,6 +56,7 @@ const createTask = async (
       update: {},
       create: {
         name: payload.category,
+        userId: user.id,
       },
     });
   }
@@ -69,6 +70,7 @@ const createTask = async (
       create: {
         name: payload.subCategory,
         categoryId: category.id,
+        userId: user.id,
       },
     });
   }

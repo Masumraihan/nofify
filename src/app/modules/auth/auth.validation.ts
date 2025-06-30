@@ -15,10 +15,7 @@ export const signUpValidation = z
       .email({ message: "Invalid email format. Please provide a valid email address." })
       .trim()
       .optional(),
-    profilePicture: z
-      .string()
-      .url({ message: "Invalid URL for profile picture. Please provide a valid URL." })
-      .optional(),
+    profilePicture: z.string().optional(),
     phoneNumber: z.string({ required_error: "Phone number is required" }).trim(),
     //.regex(/^\+?[1-9]\d{1,14}$/, {
     //  message: "Phone number must be in international format and up to 15 digits long",
