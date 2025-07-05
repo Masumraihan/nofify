@@ -22,14 +22,14 @@ router.patch(
   upload.single("profilePicture"),
   async (req, res, next) => {
     try {
-      let profilePicture = null;
+      let profilePicture = "";
 
       // If a profile picture is uploaded, upload it to S3
       if (req.file) {
-        profilePicture = await uploadToS3({
+        profilePicture = (await uploadToS3({
           file: req.file,
           fileName: `nofify/users/${createId()}`,
-        });
+        })) as string;
       }
 
       const parsedData = req.body?.data ? JSON.parse(req.body?.data) : req.body;

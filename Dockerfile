@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:current-slim AS builder
+FROM node:latest as builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build && npm run postinstall
 
 # Stage 2: Production
-FROM node:current-slim
+FROM node:latest
 
 WORKDIR /app
 

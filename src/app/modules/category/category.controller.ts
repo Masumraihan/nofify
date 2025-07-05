@@ -2,6 +2,7 @@ import { PaginationOption } from "../../../constant/common";
 import catchAsync from "../../shared/catchAsync";
 import pick from "../../shared/pick";
 import sendResponse from "../../shared/sendResponse";
+import { CustomRequest } from "../../types/common";
 import { categoryFilterableFields, subCategorySearchableFields } from "./category.constant";
 import { CategoryService } from "./category.service";
 
@@ -58,6 +59,18 @@ const getAllCategory = catchAsync(async (req, res) => {
   });
 });
 
+const getMyCategories = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const data = await CategoryService.getMyCategories(user);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Category fetched successfully",
+
+    data,
+  });
+});
+
 const getAllSubCategory = catchAsync(async (req, res) => {
   const query = pick(req.query, subCategorySearchableFields);
   const options = pick(req.query, PaginationOption);
@@ -67,6 +80,18 @@ const getAllSubCategory = catchAsync(async (req, res) => {
     success: true,
     message: "Category fetched successfully",
     meta,
+    data,
+  });
+});
+
+const getMySubCategories = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const data = await CategoryService.getMySubCategories(user);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Category fetched successfully",
+
     data,
   });
 });
@@ -82,7 +107,8 @@ const deleteCategory = catchAsync(async (req, res) => {
 });
 
 const deleteSubCategory = catchAsync(async (req, res) => {
-  const result = await CategoryService.deleteSubCategory(req.params.id);
+  const user = (req as CustomRequest).user;
+  const result = await CategoryService.deleteSubCategory(user, req.params.id);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -100,4 +126,6 @@ export const CategoryControllers = {
   getAllSubCategory,
   deleteCategory,
   deleteSubCategory,
+  getMyCategories,
+  getMySubCategories,
 };
