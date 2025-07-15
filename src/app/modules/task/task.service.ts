@@ -43,8 +43,6 @@ const createTask = async (
 
   const { subCategory: subC, category: c, documents, userIds, ...data } = payload;
 
-  console.log({ data });
-
   let category;
   let subCategory;
 
@@ -83,6 +81,28 @@ const createTask = async (
     throw new AppError(StatusCodes.BAD_REQUEST, "SubCategory is required");
   }
 
+  if (payload.assignedTo === TASK_ASSIGNED_TO.MULTIPLE) {
+    const userData = await prisma.user.findUniqueOrThrow({
+      where: {
+        id: user.id,
+      },
+    });
+
+    if (!userData.isSubscribed) {
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        "First you have to subscribe to the plan to assign task to multiple users",
+      );
+    }
+
+    if (!userData.totalCoins) {
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        "You don't have enough coins to assign task to multiple users",
+      );
+    }
+  }
+
   const result = await prisma.$transaction(async (transactionClient) => {
     const taskData = await transactionClient.task.create({
       data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
@@ -92,6 +112,7 @@ const createTask = async (
         subCategory: true,
       },
     });
+
     if (documents?.length) {
       await transactionClient.file.createMany({
         data: documents.map((file) => ({
@@ -330,9 +351,14 @@ const getTaskById = async (id: string) => {
 const updateTask = async (
   user: TTokenUser,
   id: string,
-  payload: Partial<Task> & { documents?: File[]; deletedDocumentIds?: string[] },
+  payload: Partial<Task> & {
+    documents?: File[];
+    deletedDocumentIds?: string[];
+    category?: string;
+    subCategory?: string;
+  },
 ) => {
-  const { documents, deletedDocumentIds, ...data } = payload;
+  const { documents, deletedDocumentIds, category, subCategory, ...data } = payload;
 
   if (payload.subCategoryId) {
     //  IF SUBCATEGORY ID IS PROVIDED AND NOT EXIST THROW ERROR
@@ -350,6 +376,40 @@ const updateTask = async (
         id: payload.categoryId,
       },
     });
+  }
+
+  if (category) {
+    const categoryData = await prisma.category.upsert({
+      where: {
+        name: category,
+      },
+      update: {
+        name: category,
+      },
+      create: {
+        name: category,
+        userId: user.id,
+      },
+    });
+
+    data.categoryId = categoryData.id;
+  }
+
+  if (subCategory) {
+    const subCategoryData = await prisma.subCategory.upsert({
+      where: {
+        name: subCategory,
+      },
+      update: {
+        name: subCategory,
+      },
+      create: {
+        name: subCategory,
+        userId: user.id,
+      },
+    });
+
+    data.subCategoryId = subCategoryData.id;
   }
 
   return await prisma.$transaction(async (transactionClient) => {

@@ -12,7 +12,16 @@ import { Prisma } from "@prisma/client";
 const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string) => {
   const stripePaymentData = await StripeServices.verifyPayment(sessionId);
 
-  // TODO:NEED ONE MORE URL THATS FOR ONCE VERIFICATION IS FAILED, THE REDIRECT TO THIS URL
+  const isSubscription = !!stripePaymentData.subscription;
+
+  if (isSubscription && typeof stripePaymentData.subscription === "object") {
+    const subscriptionStatus = stripePaymentData?.subscription?.status;
+
+    if (subscriptionStatus !== "active") {
+      await StripeServices.refundPayment(stripePaymentData.payment_intent as string);
+      throw new AppError(StatusCodes.BAD_REQUEST, "Subscription is not active");
+    }
+  }
 
   const paymentData = await prisma.payment.findUniqueOrThrow({
     where: { transactionId },
@@ -81,6 +90,7 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
         totalCoins: {
           increment: subscriptionData.package.coin,
         },
+        isSubscribed: true,
       },
     });
 

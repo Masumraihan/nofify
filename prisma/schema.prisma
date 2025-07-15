@@ -47,11 +47,12 @@ model User {
   validation         Validation?
   notifications      Notification[]
   subscription       Subscription[]
+  isSubscribed       Boolean?       @default(false)
   payment            Payment[]
   tasks              Task[]
   files              File[]
   withdrawals        Withdrawal[]
-  locationPaths      LocationPath[]
+  cationPaths        LocationPath[]
   addTasks           AddTasks[]
   categories         Category[]
   SubCategories      SubCategory[]
@@ -84,18 +85,24 @@ model Package {
 }
 
 model Subscription {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  user          User     @relation(fields: [userId], references: [id])
-  packageId     String   @db.ObjectId
-  package       Package  @relation(fields: [packageId], references: [id])
-  transactionId String   @unique
-  isActive      Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  payment       Payment?
+  id                   String                 @id @default(auto()) @map("_id") @db.ObjectId
+  userId               String                 @db.ObjectId
+  user                 User                   @relation(fields: [userId], references: [id])
+  packageId            String                 @db.ObjectId
+  package              Package                @relation(fields: [packageId], references: [id])
+  transactionId        String                 @unique
+  mode                 StripeSubscriptionMode @default(payment)
+  isActive             Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  payment              Payment?
 
   @@map("subscriptions")
+}
+
+enum StripeSubscriptionMode {
+  payment
+  subscription
 }
 
 model Payment {

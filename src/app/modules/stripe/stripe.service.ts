@@ -155,7 +155,9 @@ const createPaymentLink = async ({
 };
 
 const verifyPayment = async (sessionId: string) => {
-  const response = await stripe.checkout.sessions.retrieve(sessionId);
+  const response = await stripe.checkout.sessions.retrieve(sessionId, {
+    expand: ["subscription"],
+  });
   return response;
 };
 
@@ -174,9 +176,17 @@ const refundPayment = async (intendId: string, amount?: number) => {
   return response;
 };
 
+const cancelSubscription = async (stripeTransactionId: string) => {
+  const response = await stripe.subscriptions.update(stripeTransactionId, {
+    cancel_at_period_end: true,
+  });
+  return response;
+};
+
 export const StripeServices = {
   //paymentLink,
   verifyPayment,
   createPaymentLink,
   refundPayment,
+  cancelSubscription,
 };

@@ -217,6 +217,7 @@ const getMyProfile = async (user: TTokenUser) => {
       totalCoins: true,
       code: true,
       referralCode: true,
+      isSubscribed: true,
     },
   });
   return result;

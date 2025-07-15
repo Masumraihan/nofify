@@ -176,7 +176,7 @@ const myTasks = async (
 ) => {
   const andConditions: Prisma.AssignTaskWhereInput[] = [];
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
-  const { searchTerm, ...filterQuery } = query;
+  const { searchTerm, assignedTo, ...filterQuery } = query;
   if (searchTerm) {
     andConditions.push({
       OR: [
@@ -216,6 +216,16 @@ const myTasks = async (
     });
   }
 
+  if (assignedTo && typeof assignedTo === "string") {
+    andConditions.push({
+      task: {
+        assignedTo: {
+          equals: assignedTo,
+        },
+      },
+    });
+  }
+
   if (Object.keys(filterQuery).length > 0) {
     andConditions.push({
       AND: Object.entries(filterQuery).map(([key, value]) => {
@@ -243,8 +253,19 @@ const myTasks = async (
 
   const whereConditions: Prisma.AssignTaskWhereInput =
     andConditions.length > 0
-      ? { AND: andConditions, addTask: { userId: user.id } }
-      : { addTask: { userId: user.id } };
+      ? {
+          AND: andConditions,
+          OR: [
+            { addTask: { userId: user.id } },
+            { task: { userId: user.id, assignedTo: TASK_ASSIGNED_TO.MYSELF } },
+          ],
+        }
+      : {
+          OR: [
+            { addTask: { userId: user.id } },
+            { task: { userId: user.id, assignedTo: TASK_ASSIGNED_TO.MYSELF } },
+          ],
+        };
 
   const result = await prisma.assignTask.findMany({
     where: { ...whereConditions },
@@ -315,7 +336,7 @@ const myAssignTasks = async (
 
   const { limit, skip, sortBy, sortOrder, page } = paginationHelper.calculatePagination(options);
 
-  const { searchTerm, date, ...filterQuery } = query;
+  const { searchTerm, date, assignedTo, ...filterQuery } = query;
 
   if (searchTerm) {
     andConditions.push({
@@ -353,6 +374,16 @@ const myAssignTasks = async (
           },
         },
       ],
+    });
+  }
+
+  if (assignedTo && typeof assignedTo === "string") {
+    andConditions.push({
+      task: {
+        assignedTo: {
+          equals: assignedTo,
+        },
+      },
     });
   }
 

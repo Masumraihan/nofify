@@ -1,5 +1,5 @@
 export const taskSearchableFields = ["title", "description"];
-export const assignTaskFilterableFields = ["status", "isAccepted", "userId", "date"];
+export const assignTaskFilterableFields = ["status", "isAccepted", "userId", "date","assignedTo"];
 export const ASSIGN_TASK_STATUS = {
   PENDING: "PENDING",
   PROCESSING: "PROCESSING",

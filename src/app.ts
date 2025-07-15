@@ -59,7 +59,7 @@ const getSecrets = async () => {
   }
 };
 
-getSecrets();
+//getSecrets();
 
 i18next.use(Backend).init({
   //debug: true,

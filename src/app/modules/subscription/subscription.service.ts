@@ -1,7 +1,7 @@
 import { createId } from "@paralleldrive/cuid2";
 import { StatusCodes } from "http-status-codes";
 import config from "../../config";
-import { Prisma } from "@prisma/client";
+import { Prisma, StripeSubscriptionMode } from "@prisma/client";
 import AppError from "../../errors/AppError";
 import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
@@ -9,7 +9,10 @@ import { PAYMENT_STATUS } from "../payment/payment.constant";
 import { StripeServices } from "../stripe/stripe.service";
 import generateCryptoString from "../../shared/generateRandomString";
 
-const createSubscription = async (user: TTokenUser, payload: { packageId: string }) => {
+const createSubscription = async (
+  user: TTokenUser,
+  payload: { packageId: string; mode: StripeSubscriptionMode },
+) => {
   const packageData = await prisma.package.findFirstOrThrow({
     where: {
       id: payload.packageId,
@@ -28,8 +31,8 @@ const createSubscription = async (user: TTokenUser, payload: { packageId: string
     const subscription = await transactionClient.subscription.create({
       data: {
         userId: user.id,
-        packageId: payload.packageId,
         transactionId,
+        ...payload,
       },
     });
 
@@ -215,9 +218,52 @@ const getSubscription = async (user: TTokenUser) => {
   return result;
 };
 
+const cancelStripeSubscription = async (
+  user: TTokenUser,
+  payload: { subscriptionId: string; transactionId: string },
+) => {
+  // GET THE SUBSCRIPTION FROM LOCAL DB
+  const subscriptionData = await prisma.subscription.findFirstOrThrow({
+    where: {
+      id: payload.subscriptionId,
+      userId: user.id,
+    },
+    include: {
+      package: true,
+      payment: true,
+    },
+  });
+
+  // IF SUBSCRIPTION IS NOT ACTIVE THROW ERROR
+  //if (!subscriptionData.isActive) {
+  //  throw new AppError(StatusCodes.BAD_REQUEST, "Subscription is not active");
+  //}
+
+  // IF SUBSCRIPTION IS NOT PAID THROW ERROR
+  //if (subscriptionData.payment?.status !== PAYMENT_STATUS.PAID) {
+  //  throw new AppError(
+  //    StatusCodes.BAD_REQUEST,
+  //    "Subscription is " + subscriptionData.payment?.status,
+  //  );
+  //}
+
+  const data = await StripeServices.cancelSubscription(payload.subscriptionId);
+
+  console.log(data);
+  await prisma.subscription.update({
+    where: {
+      id: payload.subscriptionId,
+    },
+    data: {
+      isActive: false,
+    },
+  });
+};
+
 export const SubscriptionServices = {
   createSubscription,
   updateSubscription,
   getSubscription,
   cancelSubscription,
+  cancelStripeSubscription,
 };
