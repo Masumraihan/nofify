@@ -1,73 +1,12 @@
-import { User } from "@prisma/client";
+import { StripeSubscriptionMode, User } from "@prisma/client";
 import Stripe from "stripe";
 import { stripe } from "../../constant/stripe";
 import prisma from "../../shared/prisma";
-
-//const paymentLink = async ({ payment }: { payment: Payment }) => {
-//  const user = await prisma.user.findUniqueOrThrow({
-//    where: {
-//      id: payment.userId,
-//      isDelete: false,
-//    },
-//  });
-//  let userStripeId = user.stripeId;
-
-//  if (!userStripeId) {
-//    const customer = await stripe.customers.create({
-//      email: user.email,
-//      name: user.name,
-//    });
-
-//    await prisma.user.update({
-//      where: {
-//        id: user.id,
-//        isDelete: false,
-//      },
-//      data: {
-//        stripeId: customer.id,
-//      },
-//    });
-
-//    userStripeId = customer.id;
-//  }
-
-//  const paymentGatewayData = await stripe.checkout.sessions.create({
-//    line_items: [
-//      {
-//        price_data: {
-//          currency: "usd",
-//          product_data: {
-//            name: "Subscription Plan",
-//          },
-//          unit_amount: payment.amount * 100,
-//        },
-//        quantity: 1,
-//      },
-//    ],
-//    success_url: `${config.payment.webHookUrl}?sessionId={CHECKOUT_SESSION_ID}&paymentId=${payment.id}&transactionId=${payment.transactionId}`,
-//    cancel_url: `${config.payment.paymentCancelUrl}?paymentId=${payment.id}`,
-//    mode: "payment",
-//    metadata: {
-//      user: JSON.stringify({
-//        paymentId: payment.id,
-//      }),
-//    },
-//    invoice_creation: {
-//      enabled: true,
-//    },
-//    customer: userStripeId,
-//    payment_intent_data: {
-//      metadata: {
-//        payment: JSON.stringify({
-//          ...payment,
-//        }),
-//      },
-//    },
-//    payment_method_types: ["card", "amazon_pay", "cashapp", "us_bank_account"],
-//  });
-
-//  return paymentGatewayData;
-//};
+import config from "../../config";
+import { TTokenUser } from "../../types/common";
+import AppError from "../../errors/AppError";
+import { StatusCodes } from "http-status-codes";
+import { Request } from "express";
 
 const createPaymentLink = async ({
   user,
@@ -80,6 +19,7 @@ const createPaymentLink = async ({
   cancelUrl,
   name,
   webHookUrl,
+  mode,
 }: {
   name: string;
   user: User;
@@ -91,6 +31,7 @@ const createPaymentLink = async ({
   paymentIntentDataMetaData?: Record<string, unknown>;
   cancelUrl: string;
   webHookUrl: string;
+  mode: StripeSubscriptionMode;
 }) => {
   const urlQuery = new URLSearchParams();
 
@@ -135,7 +76,7 @@ const createPaymentLink = async ({
     ],
     success_url: `${webHookUrl}?sessionId={CHECKOUT_SESSION_ID}&${urlQuery.toString()}`,
     cancel_url: `${cancelUrl}?${urlQuery.toString()}`,
-    mode: "payment",
+    mode,
     metadata: {
       data: JSON.stringify(metaData),
     },
@@ -183,10 +124,172 @@ const cancelSubscription = async (stripeTransactionId: string) => {
   return response;
 };
 
+const getStripeProductPriceId = async ({
+  productId,
+  price,
+}: {
+  productId: string;
+  price: number;
+}) => {
+  console.log({ productId, price });
+  // Step 1: Try to find existing price for the product
+  const prices = await stripe.prices.list({
+    product: productId,
+    active: true,
+    limit: 100,
+  });
+
+  console.log({ prices });
+  // Step 2: Check if price already exists with same amount and interval
+  let existingPrice = prices.data.find(
+    (p) =>
+      p.unit_amount === price * 100 &&
+      p.currency === "usd" &&
+      p.recurring?.interval === (config.nodeEnv === "production" ? "month" : "day"),
+  );
+
+  // Step 3: If no matching price found, create one
+  if (!existingPrice) {
+    existingPrice = await stripe.prices.create({
+      product: productId,
+      unit_amount: price * 100,
+      recurring: {
+        interval: config.nodeEnv === "production" ? "month" : "day",
+      },
+      currency: "usd",
+    });
+  }
+
+  // Step 4: Use existingPrice.id for checkout/session/etc.
+  return existingPrice.id;
+};
+
+const getPaymentLinkForProduct = async (user: TTokenUser) => {
+  // Step 1: Get or create the price ID
+  const priceId = await getStripeProductPriceId({
+    productId: config.payment.productIdOne as string,
+    price: Number(config.payment.productPriceOne as string),
+  });
+
+  // Step 2: Create the checkout session
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price: priceId,
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      userId: user.id,
+    },
+    customer_email: user.email, // Optional: prefill customer email
+    success_url: `${config.server_url}/api/v1/subscription/success`, //?sessionId={CHECKOUT_SESSION_ID}&${urlQuery.toString()}
+    cancel_url: `${config.server_url}/api/v1/subscription/success?success=false`,
+  });
+
+  return session.url; // Return URL to redirect the user
+};
+
+const webhook = async (req: Request) => {
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+  const sig = req.headers["stripe-signature"] as string | undefined;
+
+  if (!sig) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Missing Stripe signature header.");
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    // Ensure raw body is passed (you must extract raw body from the request middleware level)
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error("Webhook signature verification failed.", err);
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      `Webhook Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+    );
+  }
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+
+        const userId = session.metadata?.userId;
+        if (!userId) {
+          console.warn("Missing userId in session metadata.");
+          break;
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+          console.warn(`User not found for ID: ${userId}`);
+          break;
+        }
+
+        const referredUser = await prisma.user.findUnique({
+          where: { code: user.code },
+        });
+
+        if (referredUser) {
+          // Give referred user 200 coins
+          await prisma.user.update({
+            where: { id: referredUser.id },
+            data: { totalCoins: { increment: 200 } },
+          });
+        }
+
+        // Give main user coins
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            totalCoins: {
+              increment: referredUser ? 200 : 400,
+            },
+          },
+        });
+
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log("💸 Subscription payment succeeded", invoice);
+        // Optionally: Add coins/credits based on invoice.customer
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log("❌ Subscription canceled", subscription);
+        // Optionally: Disable user's subscription
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+  } catch (err) {
+    console.error("Error handling Stripe webhook event", err);
+    throw new AppError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      `Internal error processing webhook event: ${
+        err instanceof Error ? err.message : "Unknown error"
+      }`,
+    );
+  }
+};
+
+
 export const StripeServices = {
   //paymentLink,
   verifyPayment,
   createPaymentLink,
   refundPayment,
   cancelSubscription,
+  getPaymentLinkForProduct,
+  webhook,
 };

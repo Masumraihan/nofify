@@ -20,6 +20,7 @@ import router from "./app/routes";
 import prisma from "./app/shared/prisma";
 import { generateReferCode } from "./app/modules/auth/auth.utils";
 import { getSecret } from "./app/constant/secretManager";
+import { StripeController } from "./app/modules/stripe/stripe.controller";
 const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
@@ -48,6 +49,14 @@ app.use(
 
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// PUT STRIPE WEBHOOK HERE BECAUSE app.use(express.json()); PARSE THE BODY FIRST. BUT WE NEED THE RAW BODY
+app.post(
+  "/api/v1/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  StripeController.webhook,
+);
+
 app.use(express.json());
 
 const getSecrets = async () => {

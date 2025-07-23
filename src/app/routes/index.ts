@@ -14,6 +14,7 @@ import { SubscriptionRoutes } from "../modules/subscription/subscription.route";
 import { CoinsRoutes } from "../modules/coin/coins.route";
 import { WithdrawalRoutes } from "../modules/withdrawal/withdrawal.route";
 import { GoogleCalenderRoutes } from "../modules/google-calender/googleCalender.route";
+import { StripeRoutes } from "../modules/stripe/stripe.route";
 
 const router = express.Router();
 
@@ -29,6 +30,10 @@ const moduleRoutes = [
   {
     path: "/package",
     route: PackageRoutes,
+  },
+  {
+    path: "/stripe",
+    route: StripeRoutes,
   },
   {
     path: "/subscription",

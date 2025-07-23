@@ -136,6 +136,74 @@ const verifyPaymentWithWebhook = async (sessionId: string, transactionId: string
   };
 };
 
+const verifyMonthlySubscription = async ({
+  sessionId,
+  userId,
+}: {
+  sessionId: string;
+  userId: string;
+}) => {
+  const stripePaymentData = await StripeServices.verifyPayment(sessionId);
+
+  switch (stripePaymentData.status) {
+    case "complete":
+      break;
+    case "expired":
+      await StripeServices.refundPayment(stripePaymentData.payment_intent as string);
+      throw new AppError(StatusCodes.BAD_REQUEST, "Payment is not succeeded");
+    default:
+      await StripeServices.refundPayment(stripePaymentData.payment_intent as string);
+      throw new AppError(StatusCodes.BAD_REQUEST, "Payment is not succeeded");
+  }
+
+  // AFTER COMPLETE FIND THE USER
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    await StripeServices.refundPayment(stripePaymentData.payment_intent as string);
+    throw new AppError(StatusCodes.NOT_FOUND, "User Not Found");
+  }
+
+  const result = await prisma.$transaction(async (transactionClient: Prisma.TransactionClient) => {
+    if (user.referralCode) {
+      const referUserExist = await transactionClient.user.findFirst({
+        where: {
+          code: user?.referralCode,
+        },
+      });
+
+      // AFTER COMPLETE MONTHLY SUBSCRIPTION PROVIDE 200 COIN TO REFER USER
+      if (referUserExist) {
+        await transactionClient.user.update({
+          where: {
+            id: referUserExist.id,
+          },
+          data: {
+            totalCoins: {
+              increment: 200,
+            },
+          },
+        });
+      }
+
+      // IF REFER USER NOT EXIST PROVIDE 400 COIN IF EXIST ADD 200 COIN IN WALLET
+      await transactionClient.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          totalCoins: {
+            increment: referUserExist ? 200 : 400,
+          },
+        },
+      });
+    }
+  });
+};
+
 const updateSubscriptionVerifyPaymentWithWebhook = async (
   sessionId: string,
   transactionId: string,

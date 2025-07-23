@@ -34,6 +34,8 @@ export default {
   payment: {
     secretKey: process.env.PAYMENT_GATEWAY_SECRET_KEY,
     webHookUrl: process.env.WEB_HOOK_URL,
+    productIdOne: process.env.STRIPE_PRODUCT_ID_ONE,
+    productPriceOne: process.env.STRIPE_PRODUCT_PRICE_ONE,
   },
   message: {
     twilioAccountSID: process.env.TWILIO_ACCOUNT_SID,

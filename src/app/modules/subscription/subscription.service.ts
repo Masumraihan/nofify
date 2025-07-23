@@ -55,6 +55,7 @@ const createSubscription = async (
         user: payment.user,
         amount: payment.amount,
         name: "Subscription Payment",
+        mode: payload.mode,
         metaData: { subscriptionId: subscription.id, transactionId: transactionId },
         paymentIntentDataMetaData: {
           paymentId: payment.id,
@@ -62,7 +63,7 @@ const createSubscription = async (
           transactionId,
         },
         query: { subscriptionId: subscription.id, transactionId: transactionId },
-        webHookUrl: config.payment.webHookUrl as string,
+        webHookUrl: `${config.server_url}/api/v1/subscription/success`,
         cancelUrl: `${config.server_url}/api/v1/subscription/success?success=false`,
       });
     }
@@ -142,6 +143,7 @@ const updateSubscription = async (user: TTokenUser, payload: { packageId: string
           subscriptionId: subscription.id,
           transactionId,
         },
+        mode: currentSubscription.mode,
         query: { subscriptionId: subscription.id, transactionId: transactionId },
         webHookUrl: config.payment.webHookUrl as string,
         cancelUrl: `${config.server_url}/api/v1/subscription/success?success=false`,
