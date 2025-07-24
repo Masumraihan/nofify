@@ -117,11 +117,31 @@ const refundPayment = async (intendId: string, amount?: number) => {
   return response;
 };
 
-const cancelSubscription = async (stripeTransactionId: string) => {
-  const response = await stripe.subscriptions.update(stripeTransactionId, {
-    cancel_at_period_end: true,
+const cancelSubscription = async (user: TTokenUser) => {
+  // Step 1: Get user from DB
+  const userData = await prisma.user.findUnique({
+    where: { id: user.id },
   });
-  return response;
+
+  if (!userData || !userData.stripeSubscriptionId) {
+    throw new AppError(StatusCodes.NOT_FOUND, "Active subscription not found.");
+  }
+
+  // Step 2: Cancel subscription in Stripe
+  await stripe.subscriptions.update(userData.stripeSubscriptionId, {
+    cancel_at_period_end: true, // or false if you want to cancel immediately
+  });
+
+  // Step 3: Update user status in DB
+  await prisma.user.update({
+    where: { id: userData.id },
+    data: {
+      isSubscriptionActive: false,
+      stripeSubscriptionId: null,
+    },
+  });
+
+  return null;
 };
 
 const getStripeProductPriceId = async ({
@@ -139,7 +159,6 @@ const getStripeProductPriceId = async ({
     limit: 100,
   });
 
-  console.log({ prices });
   // Step 2: Check if price already exists with same amount and interval
   let existingPrice = prices.data.find(
     (p) =>
@@ -165,6 +184,19 @@ const getStripeProductPriceId = async ({
 };
 
 const getPaymentLinkForProduct = async (user: TTokenUser) => {
+  // CHECK IF ALREADY HAVE ACTIVE SUBSCRIPTION OR NOT
+
+  const isAlreadySubscribed = await prisma.user.findFirst({
+    where: {
+      id: user.id,
+      isSubscriptionActive: true,
+    },
+  });
+
+  if (isAlreadySubscribed) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "You are already subscribed.");
+  }
+
   // Step 1: Get or create the price ID
   const priceId = await getStripeProductPriceId({
     productId: config.payment.productIdOne as string,
@@ -187,6 +219,16 @@ const getPaymentLinkForProduct = async (user: TTokenUser) => {
     customer_email: user.email, // Optional: prefill customer email
     success_url: `${config.server_url}/api/v1/subscription/success`, //?sessionId={CHECKOUT_SESSION_ID}&${urlQuery.toString()}
     cancel_url: `${config.server_url}/api/v1/subscription/success?success=false`,
+  });
+
+  // SET SUBSCRIPTION ID INTO USER PROFILE FOR ANY FUTURE ACTION LIKE CANCELLATION
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      stripeSubscriptionId: session.subscription as string,
+    },
   });
 
   return session.url; // Return URL to redirect the user
@@ -249,6 +291,7 @@ const webhook = async (req: Request) => {
             totalCoins: {
               increment: referredUser ? 200 : 400,
             },
+            isSubscriptionActive: true,
           },
         });
 
@@ -282,7 +325,6 @@ const webhook = async (req: Request) => {
     );
   }
 };
-
 
 export const StripeServices = {
   //paymentLink,

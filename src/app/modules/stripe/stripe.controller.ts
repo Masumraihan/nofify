@@ -25,7 +25,20 @@ const webhook = catchAsync(async (req, res) => {
   });
 });
 
+
+const cancelSubscription = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await StripeServices.cancelSubscription(user);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Subscription cancelled successfully",
+    data: result,
+  });
+});
+
 export const StripeController = {
   webhook,
   getPaymentLinkForProduct,
+  cancelSubscription
 };

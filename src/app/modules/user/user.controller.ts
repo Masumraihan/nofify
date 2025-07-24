@@ -22,6 +22,20 @@ const getUsers = catchAsync(async (req, res) => {
   });
 });
 
+const getSpecificUsers = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const query = pick(req.query, userFilterableFields);
+  const option = pick(req.query, PaginationOption);
+  const { data, meta } = await UserServices.getSpecificUsers(user, query, option);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Users fetched successfully",
+    meta,
+    data,
+  });
+});
+
 const getUserUsingReferralCode = catchAsync(async (req, res) => {
   const result = await UserServices.getUserUsingReferralCode(req.params.referralCode);
   sendResponse(res, {
@@ -119,6 +133,7 @@ const checkUserExist = catchAsync(async (req, res) => {
 export const UserControllers = {
   uploadImage,
   getUsers,
+  getSpecificUsers,
   getUser,
   updateUser,
   deleteUser,

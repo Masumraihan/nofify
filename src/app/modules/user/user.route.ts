@@ -11,7 +11,9 @@ const storage = memoryStorage();
 const upload = multer({ storage });
 const router = express.Router();
 
-router.get("/users", auth("SUPER_ADMIN", "USER"), UserControllers.getUsers);
+router.get("/users", auth("USER"), UserControllers.getUsers);
+router.get("/specifics-users", auth("USER"), UserControllers.getSpecificUsers);
+
 router.get("/profile", auth("SUPER_ADMIN", "USER"), UserControllers.getMyProfile);
 router.get("/code/:referralCode", auth("SUPER_ADMIN"), UserControllers.getUserUsingReferralCode);
 router.post("/check-user", UserControllers.checkUserExist);
@@ -23,7 +25,6 @@ router.patch(
   async (req, res, next) => {
     try {
       let profilePicture = "";
-
       // If a profile picture is uploaded, upload it to S3
       if (req.file) {
         profilePicture = (await uploadToS3({

@@ -23,39 +23,41 @@ model Validation {
 }
 
 model User {
-  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
-  firstName          String
-  lastName           String?
-  fullName           String?
-  email              String
-  profilePicture     String?        @default("")
-  phoneNumber        String?
-  fcmToken           String?        @default("")
-  password           String?        @default("")
-  role               String         @default("USER")
-  documents          Json[]
-  isDelete           Boolean        @default(false)
-  isActive           Boolean        @default(true)
-  stripeId           String?        @default("")
-  totalCoins         Int            @default(0)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  code               String         @unique // my referral code
-  referralCode       String? // referral code of the user
-  signUpMethod       String         @default("GOOGLE")
-  googleRefreshToken String?
-  validation         Validation?
-  notifications      Notification[]
-  subscription       Subscription[]
-  isSubscribed       Boolean?       @default(false)
-  payment            Payment[]
-  tasks              Task[]
-  files              File[]
-  withdrawals        Withdrawal[]
-  cationPaths        LocationPath[]
-  addTasks           AddTasks[]
-  categories         Category[]
-  SubCategories      SubCategory[]
+  id                   String         @id @default(auto()) @map("_id") @db.ObjectId
+  firstName            String
+  lastName             String?
+  fullName             String?
+  email                String
+  profilePicture       String?        @default("")
+  phoneNumber          String?
+  fcmToken             String?        @default("")
+  password             String?        @default("")
+  role                 String         @default("USER")
+  documents            Json[]
+  isDelete             Boolean        @default(false)
+  isActive             Boolean        @default(true)
+  stripeId             String?        @default("")
+  totalCoins           Int            @default(0)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  code                 String         @unique // my referral code
+  referralCode         String? // referral code of the user
+  signUpMethod         String         @default("GOOGLE")
+  googleRefreshToken   String?
+  stripeSubscriptionId String?
+  isSubscriptionActive Boolean?       @default(false)
+  validation           Validation?
+  notifications        Notification[]
+  subscription         Subscription[]
+  isSubscribed         Boolean?       @default(false)
+  payment              Payment[]
+  tasks                Task[]
+  files                File[]
+  withdrawals          Withdrawal[]
+  cationPaths          LocationPath[]
+  addTasks             AddTasks[]
+  categories           Category[]
+  SubCategories        SubCategory[]
 
   @@map("users")
 }
@@ -85,17 +87,17 @@ model Package {
 }
 
 model Subscription {
-  id                   String                 @id @default(auto()) @map("_id") @db.ObjectId
-  userId               String                 @db.ObjectId
-  user                 User                   @relation(fields: [userId], references: [id])
-  packageId            String                 @db.ObjectId
-  package              Package                @relation(fields: [packageId], references: [id])
-  transactionId        String                 @unique
-  mode                 StripeSubscriptionMode @default(payment)
-  isActive             Boolean                @default(false)
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  payment              Payment?
+  id            String                 @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String                 @db.ObjectId
+  user          User                   @relation(fields: [userId], references: [id])
+  packageId     String                 @db.ObjectId
+  package       Package                @relation(fields: [packageId], references: [id])
+  transactionId String                 @unique
+  mode          StripeSubscriptionMode @default(payment)
+  isActive      Boolean                @default(false)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  payment       Payment?
 
   @@map("subscriptions")
 }
