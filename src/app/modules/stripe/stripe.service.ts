@@ -123,6 +123,8 @@ const cancelSubscription = async (user: TTokenUser) => {
     where: { id: user.id },
   });
 
+  console.log(userData?.stripeSubscriptionId, "iddddddddddd");
+
   if (!userData || !userData.stripeSubscriptionId) {
     throw new AppError(StatusCodes.NOT_FOUND, "Active subscription not found.");
   }
@@ -292,6 +294,7 @@ const webhook = async (req: Request) => {
               increment: referredUser ? 200 : 400,
             },
             isSubscriptionActive: true,
+            stripeSubscriptionId: session.subscription as string,
           },
         });
 

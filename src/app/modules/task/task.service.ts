@@ -88,7 +88,7 @@ const createTask = async (
       },
     });
 
-    if (!userData.isSubscribed) {
+    if (!userData.isSubscriptionActive) {
       throw new AppError(
         StatusCodes.BAD_REQUEST,
         "First you have to subscribe to the plan to assign task to multiple users",

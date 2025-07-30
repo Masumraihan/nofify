@@ -6,7 +6,7 @@ export const generateReferCode = async () => {
       createdAt: "desc",
     },
   });
-  console.log(lastUser);
+console.log(lastUser);
   if (lastUser) {
     const codeLastNumber = lastUser.code.split("-")[1];
     console.log("codeLastNumber", codeLastNumber);

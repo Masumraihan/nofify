@@ -306,6 +306,7 @@ const getMyProfile = async (user: TTokenUser) => {
       code: true,
       referralCode: true,
       isSubscribed: true,
+      isSubscriptionActive: true,
     },
   });
   return result;

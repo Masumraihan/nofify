@@ -255,9 +255,12 @@ const myTasks = async (
     andConditions.length > 0
       ? {
           AND: andConditions,
+
           OR: [
             { addTask: { userId: user.id } },
-            { task: { userId: user.id, assignedTo: TASK_ASSIGNED_TO.MYSELF } },
+            {
+              task: { userId: user.id, assignedTo: TASK_ASSIGNED_TO.MYSELF },
+            },
           ],
         }
       : {

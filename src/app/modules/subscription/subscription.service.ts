@@ -249,9 +249,8 @@ const cancelStripeSubscription = async (
   //  );
   //}
 
-  const data = await StripeServices.cancelSubscription(payload.subscriptionId);
+  const data = await StripeServices.cancelSubscription(user);
 
-  console.log(data);
   await prisma.subscription.update({
     where: {
       id: payload.subscriptionId,

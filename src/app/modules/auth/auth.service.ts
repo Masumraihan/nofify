@@ -35,6 +35,7 @@ const signUpIntoDb = async (payload: any) => {
   }
 
   const code = await generateReferCode();
+  console.log({ code });
   const result = await prisma.$transaction(async (transactionClient) => {
     let hashedPassword;
     if (payload.password) {
