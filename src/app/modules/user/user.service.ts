@@ -315,7 +315,7 @@ const getMyProfile = async (user: TTokenUser) => {
 const updateMyProfile = async (user: TTokenUser, payload: Prisma.UserUpdateInput) => {
   const result = await prisma.$transaction(async (transactionClient) => {
     if (payload.phoneNumber) {
-      const isAlreadyExist = await prisma.user.findFirst({
+      const isAlreadyExist = await transactionClient.user.findFirst({
         where: {
           phoneNumber: payload?.phoneNumber as string,
           isDelete: false,

@@ -39,7 +39,7 @@ router.post(
             file: files["profilePicture"][0],
             fileName: `nofify/users/${Math.floor(
               100000 + Math.random() * 900000 + new Date().getTime(),
-            )}`,
+            )}.${files["profilePicture"][0].originalname.split(".").pop()}`,
           })
         : "";
 
@@ -50,7 +50,7 @@ router.post(
               files["documents"].map((file) => {
                 const key = `nofify/docments/${Math.floor(
                   100000 + Math.random() * 900000 + new Date().getTime(),
-                )}`;
+                )}.${file.originalname.split(".").pop()}`;
 
                 return {
                   file,

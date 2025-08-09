@@ -1,11 +1,15 @@
 import admin from "firebase-admin";
 import { StatusCodes } from "http-status-codes";
 import AppError from "../errors/AppError";
-import file from "../firebase/firebase.json";
+import firebase_file from "../firebase/firebase.json";
+import prod_firebase_file from "../firebase/firebase_prod.json";
 import prisma from "../shared/prisma";
+import config from "../config";
 
 admin.initializeApp({
-  credential: admin.credential.cert(file as any),
+  credential: admin.credential.cert(
+    config.nodeEnv === "production" ? (prod_firebase_file as any) : (firebase_file as any),
+  ),
 });
 
 type NotificationPayload = {

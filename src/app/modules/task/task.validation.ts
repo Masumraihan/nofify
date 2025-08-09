@@ -20,7 +20,7 @@ const createTaskValidationSchema = z
     description: z.string({ required_error: "Description is required" }),
     documents: z.array(documentValidationSchema).optional(),
     userIds: z.array(z.string()).optional(),
-    remainderHour: z.number({ required_error: "Remainder hour is required" }),
+    remainderSeconds: z.number({ required_error: "Remainder is required" }),
   })
   .strict();
 

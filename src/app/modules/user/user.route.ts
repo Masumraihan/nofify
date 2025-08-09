@@ -29,7 +29,7 @@ router.patch(
       if (req.file) {
         profilePicture = (await uploadToS3({
           file: req.file,
-          fileName: `nofify/users/${createId()}`,
+          fileName: `nofify/users/${createId()}.${req.file.originalname.split(".")[1]}`,
         })) as string;
       }
 

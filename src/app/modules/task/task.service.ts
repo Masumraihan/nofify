@@ -188,6 +188,7 @@ const createTask = async (
         message,
         userId: user.id,
         fcmToken: userData.fcmToken,
+        assignTaskId: assignTask.id,
       });
 
       await prisma.alarm.create({

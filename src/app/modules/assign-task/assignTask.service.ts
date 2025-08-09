@@ -621,6 +621,7 @@ const updateAssignTaskStatus = async (
         message,
         userId: user.id,
         fcmToken: assignTask?.addTask?.user?.fcmToken,
+        assignTaskId: assignTask.id,
       });
 
       await transactionClient.alarm.create({
@@ -644,7 +645,7 @@ const updateAssignTaskStatus = async (
       }
 
       // STOP NOTIFICATION AFTER 1 HOUR
-      setTimeout(() => stopNotifications(alarmScheduleId), 3600000);
+      //setTimeout(() => stopNotifications(alarmScheduleId), 3600000);
     }
 
     const result = await transactionClient.assignTask.update({

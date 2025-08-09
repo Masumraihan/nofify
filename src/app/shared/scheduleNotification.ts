@@ -3,6 +3,8 @@ import schedule from "node-schedule";
 import { sendNotification } from "./sendNotification";
 import AppError from "../errors/AppError";
 import { StatusCodes } from "http-status-codes";
+import prisma from "./prisma";
+import { ALARM_STATUS, ASSIGN_TASK_STATUS } from "../modules/assign-task/assignTask.constant";
 
 // Map to track active jobs
 const activeJobs: Map<string, { job?: Job; interval?: NodeJS.Timeout }> = new Map();
@@ -23,6 +25,7 @@ export function scheduleNotifications(
     recurringMessage?: string;
     userId: string;
     fcmToken: string;
+    assignTaskId: string;
   },
 ): string {
   try {
@@ -40,15 +43,37 @@ export function scheduleNotifications(
     activeJobs.set(scheduleId, {});
 
     // Schedule the initial notification
-    const initialJob = schedule.scheduleJob(targetDateTimeUTC, () => {
+    const initialJob = schedule.scheduleJob(targetDateTimeUTC, async () => {
       sendNotification([payload.fcmToken], {
         title: "Your task is starting now",
         body: payload.message,
         userId: payload.userId,
       });
 
+      // MAKE THE ASSIGN TASK IN PROGRESS
+      await prisma.assignTask.update({
+        where: {
+          id: payload.assignTaskId,
+        },
+        data: {
+          status: ASSIGN_TASK_STATUS.PROCESSING,
+        },
+      });
+
       // Start recurring notifications only after the first one is sent
-      const interval = setInterval(() => {
+      const interval = setInterval(async () => {
+        const getAlarm = await prisma.alarm.findFirst({
+          where: {
+            alarmScheduleId: scheduleId,
+          },
+        });
+
+        if (getAlarm) {
+          if (getAlarm.status === ALARM_STATUS.INACTIVE) {
+            clearInterval(interval);
+          }
+        }
+
         sendNotification([payload.fcmToken], {
           title: "Reminder from Notify, " + scheduleId,
           body: payload.recurringMessage || payload.message,
