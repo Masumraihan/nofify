@@ -109,7 +109,7 @@ const createAssignTask = async (
     .replace(/{{categoryName}}/g, `${taskData?.category?.name}`)
     .replace(/{{subCategoryName}}/g, `${taskData?.category?.name}`)
     .replace(/{{taskDate}}/g, `${moment(taskData?.date).format("LL")}`)
-    .replace(/{{remainderHour}}/g, `${taskData?.remainderHour}`)
+    .replace(/{{remainderHour}}/g, `${taskData?.remainderSeconds / 3600}`)
     .replace(/{{taskDescription}}/g, `${taskData?.description}`);
   await sendMail({
     to: user.email,
@@ -617,22 +617,18 @@ const updateAssignTaskStatus = async (
       const time = new Date(assignTask?.task?.time);
       const dateTime = dayjs(`${date}`).utc().toDate();
       const message = `You have a pending task: ${assignTask.task.title}. Have you completed it yet?`;
-      const alarmScheduleId = scheduleNotifications(
-        dateTime,
-        assignTask.task.remainderHour * 60 * 60,
-        {
-          message,
-          userId: user.id,
-          fcmToken: assignTask?.addTask?.user?.fcmToken,
-        },
-      );
+      const alarmScheduleId = scheduleNotifications(dateTime, assignTask.task.remainderSeconds, {
+        message,
+        userId: user.id,
+        fcmToken: assignTask?.addTask?.user?.fcmToken,
+      });
 
       await transactionClient.alarm.create({
         data: {
           assignTaskId: id,
           message,
           //make remainder in second
-          interval: assignTask.task.remainderHour,
+          interval: assignTask.task.remainderSeconds,
           dateTime,
           alarmScheduleId,
         },

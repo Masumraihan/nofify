@@ -13,8 +13,8 @@ const createTaskValidationSchema = z
       required_error: "Assigned to is required",
       invalid_type_error: "Assigned to must be a MYSELF or MULTIPLE",
     }),
-    category: z.string().optional(),
-    subCategory: z.string().optional(),
+    categoryId: z.string().optional(),
+    subCategoryId: z.string().optional(),
     date: z.string({ required_error: "Date is required" }),
     time: z.string({ required_error: "Time is required" }),
     description: z.string({ required_error: "Description is required" }),
@@ -41,7 +41,7 @@ const updateTaskValidationSchema = z
     description: z.string().optional(),
     documents: z.array(documentValidationSchema).optional(),
     deletedDocumentIds: z.array(z.string()).optional(),
-    remainderHour: z.number().optional(),
+    remainderSeconds: z.number().optional(),
   })
   .strict();
 

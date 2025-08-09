@@ -319,9 +319,9 @@ const updateMyProfile = async (user: TTokenUser, payload: Prisma.UserUpdateInput
         where: {
           phoneNumber: payload?.phoneNumber as string,
           isDelete: false,
+          id: { not: user.id },
         },
       });
-
       if (isAlreadyExist) {
         throw new AppError(StatusCodes.BAD_REQUEST, "Phone number already exist");
       }

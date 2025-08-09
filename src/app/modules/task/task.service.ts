@@ -13,6 +13,10 @@ import { taskSearchableFields } from "./task.constant";
 import { sendMail } from "../../helpers/sendMail";
 import moment from "moment";
 import { addTaskToGoogleCalendar } from "../../shared/addTaskToGoogleCalendar";
+import { AssignTaskServices } from "../assign-task/assignTask.service";
+import { scheduleNotifications, stopNotifications } from "../../shared/scheduleNotification";
+import { sendNotification } from "../../shared/sendNotification";
+import dayjs from "dayjs";
 
 const createTask = async (
   user: TTokenUser,
@@ -28,157 +32,190 @@ const createTask = async (
 
   if (payload.assignedTo === TASK_ASSIGNED_TO.MULTIPLE) {
     const userData = await prisma.user.findUniqueOrThrow({
-      where: {
-        id: user.id,
-      },
+      where: { id: user.id },
     });
 
     if (!userData.totalCoins) {
       throw new AppError(
         StatusCodes.BAD_REQUEST,
         "You don't have enough coins to assign task to multiple users",
+      );
+    }
+
+    if (!userData.isSubscriptionActive) {
+      throw new AppError(
+        StatusCodes.BAD_REQUEST,
+        "First you have to subscribe to assign task to multiple users",
       );
     }
   }
 
   const { subCategory: subC, category: c, documents, userIds, ...data } = payload;
 
-  let category;
-  let subCategory;
+  const result = await prisma.$transaction(
+    async (tx) => {
+      //const category = await tx.category.upsert({
+      //  where: { name: payload.category },
+      //  update: {},
+      //  create: { name: payload.category, userId: user.id },
+      //});
 
-  if (payload.category) {
-    category = await prisma.category.upsert({
-      where: {
-        name: payload.category,
-      },
-      update: {},
-      create: {
-        name: payload.category,
-        userId: user.id,
-      },
-    });
-  }
+      //const subCategory = await tx.subCategory.upsert({
+      //  where: { name: payload.subCategory || "" },
+      //  update: {},
+      //  create: {
+      //    name: payload.subCategory || "",
+      //    categoryId: category.id,
+      //    userId: user.id,
+      //  },
+      //});
 
-  if (payload.subCategory && category) {
-    subCategory = await prisma.subCategory.upsert({
-      where: {
-        name: payload.subCategory,
-      },
-      update: {},
-      create: {
-        name: payload.subCategory,
-        categoryId: category.id,
-        userId: user.id,
-      },
-    });
-  }
-
-  if (!category?.id) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "Category is required");
-  }
-
-  if (!subCategory?.id) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "SubCategory is required");
-  }
-
-  if (payload.assignedTo === TASK_ASSIGNED_TO.MULTIPLE) {
-    const userData = await prisma.user.findUniqueOrThrow({
-      where: {
-        id: user.id,
-      },
-    });
-
-    if (!userData.isSubscriptionActive) {
-      throw new AppError(
-        StatusCodes.BAD_REQUEST,
-        "First you have to subscribe to the plan to assign task to multiple users",
-      );
-    }
-
-    if (!userData.totalCoins) {
-      throw new AppError(
-        StatusCodes.BAD_REQUEST,
-        "You don't have enough coins to assign task to multiple users",
-      );
-    }
-  }
-
-  const result = await prisma.$transaction(async (transactionClient) => {
-    const taskData = await transactionClient.task.create({
-      data: { ...data, categoryId: category?.id, subCategoryId: subCategory?.id, userId: user.id },
-      include: {
-        user: true,
-        category: true,
-        subCategory: true,
-      },
-    });
-
-    if (documents?.length) {
-      await transactionClient.file.createMany({
-        data: documents.map((file) => ({
-          taskId: taskData.id,
-          key: file.key,
-          url: file.url,
+      const taskData = await tx.task.create({
+        data: {
+          ...data,
+          categoryId: payload.categoryId,
+          subCategoryId: payload.subCategoryId,
           userId: user.id,
-        })),
-      });
-    }
-
-    let addTaskData;
-    if (userIds?.length) {
-      addTaskData = await transactionClient.addTasks.createMany({
-        data: userIds.map((userId) => ({ taskId: taskData.id, userId })),
+        },
+        include: {
+          user: true,
+          category: true,
+          subCategory: true,
+        },
       });
 
-      // SEND MAIL TO EACH ADDED USER
-
-      const users = await transactionClient.user.findMany({ where: { id: { in: userIds } } });
-      users.forEach(async (user) => {
-        const parentMailTemplate = path.join(process.cwd(), "/src/template/shortlist-task.html");
-        const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
-        const html = forgetOtpEmail
-          .replace(/{{assignedTo}}/g, `${user.firstName} ${user.lastName}`)
-          .replace(/{{creatorName}}/g, `${taskData?.user?.firstName} ${taskData?.user?.lastName}`)
-          .replace(/{{taskTitle}}/g, `${taskData?.title}`)
-          .replace(/{{categoryName}}/g, `${taskData?.category?.name}`)
-          .replace(/{{subCategoryName}}/g, `${taskData?.category?.name}`)
-          .replace(/{{taskDate}}/g, `${moment(taskData?.date).format("LL")}`)
-          .replace(/{{remainderHour}}/g, `${taskData?.remainderHour}`)
-          .replace(/{{taskDescription}}/g, `${taskData?.description}`);
-        await sendMail({
-          to: user.email,
-          html,
-          subject: "You have been short listed for a task",
+      if (documents?.length) {
+        await tx.file.createMany({
+          data: documents.map((file) => ({
+            taskId: taskData.id,
+            key: file.key,
+            url: file.url,
+            userId: user.id,
+          })),
         });
-      });
+      }
 
-      return { ...taskData, addTasks: addTaskData || [] };
-    } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
-      const addTask = await transactionClient.addTasks.create({
-        data: {
-          taskId: taskData.id,
-          userId: user.id,
-        },
-      });
+      let addedUsers: string[] = [];
 
-      await transactionClient.assignTask.create({
-        data: {
-          taskId: taskData.id,
-          addTaskId: addTask.id,
-          isAccepted: true,
-        },
-      });
-      return { ...taskData, addTasks: addTaskData || [] };
-    }
-  });
+      if (userIds?.length) {
+        await tx.addTasks.createMany({
+          data: userIds.map((userId) => ({ taskId: taskData.id, userId })),
+        });
+        addedUsers = userIds;
+      } else if (payload.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
+        const addTask = await tx.addTasks.create({
+          data: { taskId: taskData.id, userId: user.id },
+        });
 
-  const allAddTask = await prisma.addTasks.findMany({
-    where: {
-      taskId: result?.id,
+        addedUsers = [user.id];
+      }
+
+      return { taskData, addedUsers };
     },
-  });
+    { maxWait: 90000, timeout: 100000 },
+  );
 
-  return { ...result, allAddTask };
+  // OUTSIDE TRANSACTION: fetch users & send mail
+  if (result.addedUsers.length) {
+    const users = await prisma.user.findMany({
+      where: { id: { in: result.addedUsers } },
+    });
+
+    const parentMailTemplate = path.join(process.cwd(), "/src/template/shortlist-task.html");
+    const forgetOtpEmail = fs.readFileSync(parentMailTemplate, "utf-8");
+
+    await Promise.all(
+      users.map((u) => {
+        if (u.id !== user.id) {
+          const html = forgetOtpEmail
+            .replace(/{{assignedTo}}/g, `${u.firstName} ${u.lastName}`)
+            .replace(
+              /{{creatorName}}/g,
+              `${result.taskData.user.firstName} ${result?.taskData?.user?.lastName}`,
+            )
+            .replace(/{{taskTitle}}/g, result?.taskData?.title)
+            .replace(/{{categoryName}}/g, result?.taskData?.category?.name)
+            .replace(/{{subCategoryName}}/g, result?.taskData?.subCategory?.name || "")
+            .replace(/{{taskDate}}/g, moment(result?.taskData?.date).format("LL"))
+            .replace(/{{remainderHour}}/g, `${result?.taskData?.remainderSeconds / 3600}`)
+            .replace(/{{taskDescription}}/g, result?.taskData?.description || "");
+
+          return sendMail({ to: u.email, html, subject: "You have been short listed for a task" });
+        }
+      }),
+    );
+  }
+
+  // IF TASK IS FOR MYSELF ASSIGN DIRECTLY
+  if (result.taskData.assignedTo === TASK_ASSIGNED_TO.MYSELF) {
+    const userData = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+    });
+
+    const addTaskData = await prisma.addTasks.findFirst({
+      where: { taskId: result?.taskData?.id, userId: user.id },
+    });
+    if (!addTaskData) {
+      return;
+    }
+    const assignTask = await prisma.assignTask.create({
+      data: {
+        taskId: result?.taskData.id,
+        addTaskId: addTaskData.id,
+        isAccepted: (result?.taskData.assignedTo === TASK_ASSIGNED_TO.MYSELF) === true,
+      },
+      include: {
+        addTask: {
+          include: {
+            user: true,
+          },
+        },
+        task: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    // ADD SCHEDULE NOTIFICATION IF USER HAVE FCM TOKEN
+    if (userData.fcmToken) {
+      const date = new Date(assignTask.task.date);
+      const time = new Date(assignTask?.task?.time);
+      const dateTime = dayjs(`${date}`).utc().toDate();
+      const message = `You have a pending task: ${assignTask.task.title}. Have you completed it yet?`;
+      const alarmScheduleId = scheduleNotifications(dateTime, assignTask.task.remainderSeconds, {
+        message,
+        userId: user.id,
+        fcmToken: userData.fcmToken,
+      });
+
+      await prisma.alarm.create({
+        data: {
+          assignTaskId: assignTask.id,
+          message,
+          //make remainder in second
+          interval: assignTask.task.remainderSeconds,
+          dateTime,
+          alarmScheduleId,
+        },
+      });
+
+      //// SEND NOTIFICATION TO TASK PROVIDER
+      //if (assignTask?.task?.user?.fcmToken) {
+      //  await sendNotification([assignTask?.task?.user?.fcmToken], {
+      //    title: "Task Accepted",
+      //    body: `${assignTask.task.title} task is assigned to you by ${assignTask.task?.user?.firstName} ${assignTask.task?.user?.lastName} has been accepted.`,
+      //    userId: assignTask?.task?.user?.id,
+      //  });
+      //}
+
+      // STOP NOTIFICATION AFTER 1 HOUR
+      //setTimeout(() => stopNotifications(alarmScheduleId), 3600000);
+    }
+  }
+
+  return { ...result.taskData };
 };
 
 const getTasks = async (query: Record<string, unknown>, options: TPaginationOptions) => {

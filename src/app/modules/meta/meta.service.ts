@@ -1,6 +1,7 @@
 import { USER_ROLE } from "../../enums";
 import prisma from "../../shared/prisma";
 import { TTokenUser } from "../../types/common";
+import { TASK_ASSIGNED_TO } from "../assign-task/task.constant";
 import { PAYMENT_STATUS } from "../payment/payment.constant";
 
 const getUsersChartData = async (query: Record<string, unknown>) => {
@@ -237,9 +238,54 @@ const metaCounts = async () => {
   };
 };
 
+const myTaskCount = async (user: TTokenUser) => {
+  const myAssignTask = await prisma.assignTask.count({
+    where: {
+      OR: [
+        {
+          addTask: {
+            userId: user.id,
+          },
+        },
+        {
+          task: {
+            assignedTo: TASK_ASSIGNED_TO.MYSELF,
+            userId: user.id,
+          },
+        },
+      ],
+    },
+  });
+
+  const result = await prisma.assignTask.groupBy({
+    by: "status",
+    where: {
+      OR: [
+        {
+          addTask: {
+            userId: user.id,
+          },
+        },
+        {
+          task: {
+            assignedTo: TASK_ASSIGNED_TO.MYSELF,
+            userId: user.id,
+          },
+        },
+      ],
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  return result;
+};
+
 export const MetaServices = {
   getUsersChartData,
   getPaymentChartData,
   metaCounts,
   myEarningChartData,
+  myTaskCount,
 };

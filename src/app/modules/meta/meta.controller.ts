@@ -54,9 +54,22 @@ const metaCounts = catchAsync(async (req, res) => {
   });
 });
 
+const myTaskCount = catchAsync(async (req, res) => {
+  const user = (req as CustomRequest).user;
+  const result = await MetaServices.myTaskCount(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "My task count fetched successfully",
+    data: result,
+  });
+});
+
 export const MetaController = {
   getUsersChartData,
   paymentsChartData,
   metaCounts,
   myEarningChartData,
+  myTaskCount,
 };

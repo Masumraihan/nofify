@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import { StatusCodes } from "http-status-codes";
-import { Secret } from "jsonwebtoken";
 import moment from "moment";
 import path from "path";
 import config from "../../config";
@@ -24,18 +23,19 @@ const signUpIntoDb = async (payload: any) => {
     throw new AppError(StatusCodes.BAD_REQUEST, "User already exist with this email");
   }
 
-  const isMobileNumberExist = await prisma.user.findFirst({
-    where: {
-      phoneNumber: payload.phoneNumber,
-    },
-  });
+  if (payload.phoneNumber) {
+    const isMobileNumberExist = await prisma.user.findFirst({
+      where: {
+        phoneNumber: payload.phoneNumber,
+      },
+    });
 
-  if (isMobileNumberExist) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "User already exist with this phone number");
+    if (isMobileNumberExist) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "User already exist with this phone number");
+    }
   }
 
   const code = await generateReferCode();
-  console.log({ code });
   const result = await prisma.$transaction(async (transactionClient) => {
     let hashedPassword;
     if (payload.password) {
@@ -106,7 +106,7 @@ const signUpIntoDb = async (payload: any) => {
     await sendMail({
       to: user.email,
       html,
-      subject: "Verify OTP From Pentagon",
+      subject: "OTP From Nofify",
     });
 
     return { token };
