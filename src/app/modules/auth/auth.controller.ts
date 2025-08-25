@@ -35,6 +35,16 @@ const googleLogin = catchAsync(async (req, res, next) => {
   next();
 });
 
+const verifyFirebaseAccessToken = catchAsync(async (req, res) => {
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const result = await AuthServices.verifyFirebaseAccessToken({ ...req.body, ip });
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Sign In successfully!",
+    data: result,
+  });
+});
 const googleCallback = catchAsync(async (req, res) => {
   const user = (req as CustomRequest).user;
   if (user && "email" in user) {
@@ -276,6 +286,8 @@ export const AuthController = {
   signUp,
   googleCallback,
   googleLogin,
+  googleAuth,
+  verifyFirebaseAccessToken,
   signIn,
   refreshToken,
   forgetPassword,

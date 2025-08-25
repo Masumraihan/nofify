@@ -1,21 +1,22 @@
-# Stage 1: Build
-FROM node:latest as builder
+FROM node:current-slim AS builder
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY prisma ./
-COPY public ./
+COPY .env ./
 
 # Use npm ci for clean, repeatable builds
 RUN npm install
 COPY . .
 
 # Generate Prisma client and build project
-RUN npm run build && npm run postinstall
+RUN npx prisma generate
+RUN npx prisma db push
+RUN npm run build
 
 # Stage 2: Production
-FROM node:latest
+FROM node:current-slim
 
 WORKDIR /app
 
@@ -29,6 +30,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/.env .
+
 
 EXPOSE 2000
 

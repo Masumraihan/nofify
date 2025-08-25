@@ -18,6 +18,8 @@ export const sendMail = async ({ to, html, subject }: TEmail) => {
       user: config.email.user,
       pass: config.email.pass,
     },
+    logger: true,
+    debug: true,
   });
 
   // send mail with defined transport object

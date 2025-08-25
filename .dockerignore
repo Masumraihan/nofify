@@ -2,8 +2,8 @@
 node_modules
 .git
 Dockerfile
-.env
-.env.example
+#.env
+#.env.example
 .git
 .gitignore
 *.log

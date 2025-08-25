@@ -11,6 +11,8 @@ import prisma from "../../shared/prisma";
 import { sendMessage } from "../../shared/sendMessage";
 import { TTokenUser } from "../../types/common";
 import { generateReferCode } from "./auth.utils";
+import { decode } from "jsonwebtoken";
+import { firebaseAdmin } from "../../shared/sendNotification";
 
 const signUpIntoDb = async (payload: any) => {
   const isUserExist = await prisma.user.findFirst({
@@ -325,7 +327,6 @@ const resendOtp = async (payload: { email?: string; phoneNumber?: string; type?:
     // after send verification email put the otp into db
   }
   const jwtPayload = { email: userData.email, role: userData.role, id: userData.id.toString() };
-
   let token;
   if (config.jwt.jwtVerifyAccountSecret) {
     token = createToken(
@@ -415,6 +416,72 @@ const signInIntoDb = async (payload: {
   };
 };
 
+const verifyFirebaseAccessToken = async ({
+  accessToken,
+  fcmToken,
+  ip,
+}: {
+  accessToken: string;
+  fcmToken?: string;
+  ip?: string;
+}) => {
+  const decodedToken = await firebaseAdmin.auth().verifyIdToken(accessToken);
+  //const decodedToken = decode(accessToken) as any;
+  // CHECK USER IS EXIST OR NOT
+  let userData = await prisma.user.findFirst({
+    where: { email: decodedToken.email, isDelete: false },
+  });
+
+  if (userData && userData?.isActive === false) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Account is Blocked");
+  }
+
+  if (!userData) {
+    const code = await generateReferCode();
+    userData = await prisma.user.create({
+      data: {
+        email: decodedToken.email as string,
+        role: "USER",
+        firstName: decodedToken.name?.split(" ")[0] || "",
+        lastName: decodedToken.name?.split(" ")[1] || "",
+        profilePicture: decodedToken.picture || "",
+        password: await bcrypt.hash(code, Number(config.bcrypt_salt_rounds)),
+        fcmToken,
+        phoneNumber: "",
+        code,
+        validation: {
+          create: {
+            otp: null,
+            expiresAt: null,
+            isVerified: true,
+          },
+        },
+      },
+    });
+  }
+
+  const jwtPayload = { email: userData?.email, role: userData?.role, id: userData?.id };
+  const currentAccessToken = createToken(
+    jwtPayload as TTokenUser,
+    config.jwt.jwtAccessTokenSecret as string,
+    config.jwt.jwtAccessTokenExpires as string,
+  );
+
+  const refreshToken = createToken(
+    jwtPayload as TTokenUser,
+    config.jwt.jwtRefreshTokenSecret as string,
+    config.jwt.jwtRefreshTokenExpires as string,
+  );
+
+  return {
+    currentAccessToken,
+    refreshToken,
+    role: userData?.role,
+    id: userData?.id,
+    profilePicture: userData?.profilePicture,
+    //loginCount: userData?.loginCount,
+  };
+};
 const refreshToken = async (refreshToken: string) => {
   const payload = verifyToken(refreshToken, config.jwt.jwtRefreshTokenSecret as string);
   const userData = await prisma.user.findUniqueOrThrow({
@@ -722,6 +789,7 @@ export const AuthServices = {
   signUpIntoDb,
   googleCallback,
   signInIntoDb,
+  verifyFirebaseAccessToken,
   refreshToken,
   forgetPasswordIntoDb,
   resetPassword,

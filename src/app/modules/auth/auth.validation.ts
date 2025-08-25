@@ -38,7 +38,14 @@ const signInValidation = z.object({
     })
     .strict(),
 });
-
+const googleSignInValidation = z.object({
+  body: z
+    .object({
+      accessToken: z.string({ required_error: "Access token is required" }),
+      fcmToken: z.string().optional(),
+    })
+    .strict(),
+});
 const refreshTokenValidation = z.object({
   cookies: z
     .object({
@@ -107,6 +114,7 @@ const resetPasswordValidation = z.object({
 
 export const AuthValidations = {
   signUpValidation,
+  googleSignInValidation,
   signInValidation,
   refreshTokenValidation,
   forgetPasswordValidation,

@@ -33,6 +33,7 @@ router.post(
             extension,
           };
         });
+        console.log({ payload });
         const documents = await uploadManyToS3(payload);
         if (data) {
           const taskData = TaskValidation.createTaskValidationSchema.parse({

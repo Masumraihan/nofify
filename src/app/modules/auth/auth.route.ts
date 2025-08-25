@@ -79,7 +79,11 @@ router.post(
 );
 
 router.post("/sign-in", validateRequest(AuthValidations.signInValidation), AuthController.signIn);
-
+router.post(
+  "/google-sign-in",
+  validateRequest(AuthValidations.googleSignInValidation),
+  AuthController.verifyFirebaseAccessToken,
+);
 router.patch(
   "/change-password",
   auth("USER", "SUPER_ADMIN"),

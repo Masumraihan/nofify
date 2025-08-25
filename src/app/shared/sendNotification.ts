@@ -6,7 +6,7 @@ import prod_firebase_file from "../firebase/firebase_prod.json";
 import prisma from "../shared/prisma";
 import config from "../config";
 
-admin.initializeApp({
+export const firebaseAdmin = admin.initializeApp({
   credential: admin.credential.cert(
     config.nodeEnv === "production" ? (prod_firebase_file as any) : (firebase_file as any),
   ),

@@ -2,7 +2,7 @@ import { User } from "@prisma/client";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { CipherKey } from "crypto";
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import session from "express-session";
 import { StatusCodes } from "http-status-codes";
 import i18next from "i18next";
@@ -21,6 +21,8 @@ import prisma from "./app/shared/prisma";
 import { generateReferCode } from "./app/modules/auth/auth.utils";
 import { getSecret } from "./app/constant/secretManager";
 import { StripeController } from "./app/modules/stripe/stripe.controller";
+import axios from "axios";
+
 const app = express();
 
 const Strategy = GoogleStrategy.Strategy;
@@ -160,6 +162,7 @@ app.get(
   },
   passport.authenticate("google", { scope: ["email", "profile"] }),
 );
+
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", { session: true }),
@@ -265,13 +268,67 @@ app.get(
         });
 
         res.redirect(
-          `${config.server_url}/api/v1/auth/success?role=${role}&id=${id}&accessToken=${accessToken}&refreshToken=${refreshToken}`,
+          `${config.server_url}/api/v1/auth/success?role=${role}&id=${id}&accessToken=${accessToken}&refreshToken=${refreshToken}&redirect_uri=Nofify://auth`,
         );
       } else {
         next();
       }
     } catch (error) {
       next();
+    }
+  },
+);
+
+router.get(
+  "/test/auth/google/callback",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const code = req.query.code as string;
+
+    if (!code) {
+      res.status(400).json({ error: "Authorization code missing" });
+      return;
+    }
+
+    try {
+      // Build form data with URLSearchParams (no qs needed)
+      const params = new URLSearchParams({
+        code,
+        client_id: "304986574296-imshdlvkrgj3cdrvpakskgqvcoko6mtf.apps.googleusercontent.com",
+        client_secret: "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",
+        redirect_uri: "http://localhost:5000/test/auth/google/callback", // must match Google console
+        grant_type: "authorization_code",
+      });
+
+      // Exchange code for tokens
+      const tokenResponse = await axios.post(
+        "https://oauth2.googleapis.com/token",
+        params.toString(),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        },
+      );
+
+      const { id_token, access_token } = tokenResponse.data;
+
+      // Get user info
+      const userInfo = await axios.get(
+        `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${access_token}`,
+      );
+
+      const user = {
+        email: userInfo.data.email,
+        name: userInfo.data.name,
+        googleId: userInfo.data.id,
+      };
+      // TODO: save/find user in DB
+
+      // Redirect to Flutter with Google id_token
+      res.redirect(`com.example.auth_test_app://oauthredirect?token=${id_token}`);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "OAuth failed" });
     }
   },
 );
