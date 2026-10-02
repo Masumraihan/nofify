@@ -293,8 +293,8 @@ router.get(
       // Build form data with URLSearchParams (no qs needed)
       const params = new URLSearchParams({
         code,
-        client_id: "304986574296-imshdlvkrgj3cdrvpakskgqvcoko6mtf.apps.googleusercontent.com",
-        client_secret: "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",
+        client_id: "",
+        client_secret: "",
         redirect_uri: "http://localhost:5000/test/auth/google/callback", // must match Google console
         grant_type: "authorization_code",
       });
